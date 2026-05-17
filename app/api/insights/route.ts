@@ -17,31 +17,31 @@ function sanitize(s: string): string {
 }
 
 export async function POST(request: NextRequest) {
-  if (!isValidOrigin(request.headers)) {
-    return apiError("Invalid origin", "INVALID_ORIGIN", 403);
-  }
-
-  const ip = getRequestIp(request.headers);
-  const { allowed, retryAfter } = await checkRateLimit(ip);
-  if (!allowed) {
-    return apiError("Rate limited", "RATE_LIMITED", 429, retryAfter);
-  }
-
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
-  if (authError || !user) {
-    return apiError("Unauthorized", "UNAUTHORIZED", 401);
-  }
-
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    return apiError("GEMINI_API_KEY not configured", "MISSING_CONFIG", 500);
-  }
-
   try {
+    if (!isValidOrigin(request.headers)) {
+      return apiError("Invalid origin", "INVALID_ORIGIN", 403);
+    }
+
+    const ip = getRequestIp(request.headers);
+    const { allowed, retryAfter } = await checkRateLimit(ip);
+    if (!allowed) {
+      return apiError("Rate limited", "RATE_LIMITED", 429, retryAfter);
+    }
+
+    const supabase = await createClient();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return apiError("Unauthorized", "UNAUTHORIZED", 401);
+    }
+
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      return apiError("GEMINI_API_KEY not configured", "MISSING_CONFIG", 500);
+    }
+
     const body = await request.json();
     const expenses: {
       item_name: string;
@@ -103,18 +103,7 @@ Write a 2–3 sentence summary. Rules:
 
     return NextResponse.json({ insight });
   } catch (error: unknown) {
-    const message =
-      error instanceof Error ? error.message : "Unknown error";
-    const isRateLimited =
-      (error as { status?: number })?.status === 429 ||
-      message.includes("429");
-
-    return apiError(
-      isRateLimited
-        ? "AI service rate limited, try again in a minute."
-        : "Failed to generate insights.",
-      isRateLimited ? "RATE_LIMITED" : "AI_PARSE_ERROR",
-      isRateLimited ? 429 : 500
-    );
+    const msg = error instanceof Error ? error.message : "Internal error";
+    return apiError(msg, "INTERNAL_ERROR", 500);
   }
 }
