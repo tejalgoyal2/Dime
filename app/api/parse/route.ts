@@ -52,40 +52,40 @@ function stripCodeFences(text: string): string {
 }
 
 export async function POST(request: NextRequest) {
-  if (!isValidOrigin(request.headers)) {
-    return apiError("Invalid origin", "INVALID_ORIGIN", 403);
-  }
-
-  const ip = getRequestIp(request.headers);
-  const { allowed, retryAfter } = await checkRateLimit(ip);
-  if (!allowed) {
-    return apiError("Rate limited", "RATE_LIMITED", 429, retryAfter);
-  }
-
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
-  if (authError || !user) {
-    return apiError("Unauthorized", "UNAUTHORIZED", 401);
-  }
-
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    return apiError("GEMINI_API_KEY not configured", "MISSING_CONFIG", 500);
-  }
-
-  const body = (await request.text()).trim();
-  if (!body || body.length > 2000) {
-    return apiError(
-      "Provide expense text (max 2000 chars)",
-      "VALIDATION_FAILED",
-      400
-    );
-  }
-
   try {
+    if (!isValidOrigin(request.headers)) {
+      return apiError("Invalid origin", "INVALID_ORIGIN", 403);
+    }
+
+    const ip = getRequestIp(request.headers);
+    const { allowed, retryAfter } = await checkRateLimit(ip);
+    if (!allowed) {
+      return apiError("Rate limited", "RATE_LIMITED", 429, retryAfter);
+    }
+
+    const supabase = await createClient();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return apiError("Unauthorized", "UNAUTHORIZED", 401);
+    }
+
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      return apiError("GEMINI_API_KEY not configured", "MISSING_CONFIG", 500);
+    }
+
+    const body = (await request.text()).trim();
+    if (!body || body.length > 2000) {
+      return apiError(
+        "Provide expense text (max 2000 chars)",
+        "VALIDATION_FAILED",
+        400
+      );
+    }
+
     const model = getGeminiModel(apiKey, PARSE_SAFETY_SETTINGS);
     const today = new Date().toISOString().split("T")[0];
     const result = await withRetry(() =>
