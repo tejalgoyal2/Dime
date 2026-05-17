@@ -6,8 +6,10 @@ import {
   type GenerativeModel,
 } from "@google/generative-ai";
 
-export const GEMINI_MODEL =
-  process.env.GEMINI_MODEL ?? "gemini-2.5-flash-lite";
+// Read at request time, not module load (Workers lazy env)
+export function getModelName(): string {
+  return process.env.GEMINI_MODEL ?? "gemini-2.5-flash-lite";
+}
 
 export const PARSE_SAFETY_SETTINGS: SafetySetting[] = [
   {
@@ -33,7 +35,7 @@ export function getGeminiModel(
   safetySettings?: SafetySetting[]
 ): GenerativeModel {
   return new GoogleGenerativeAI(apiKey).getGenerativeModel({
-    model: GEMINI_MODEL,
+    model: getModelName(),
     safetySettings,
   });
 }

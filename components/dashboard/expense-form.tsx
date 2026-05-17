@@ -59,8 +59,14 @@ export function ExpenseForm() {
       });
 
       if (!parseRes.ok) {
-        const data = (await parseRes.json()) as { error?: string };
-        throw new Error(data.error || "Parse failed");
+        let message = "Parse failed";
+        try {
+          const data = (await parseRes.json()) as { error?: string };
+          message = data.error || message;
+        } catch {
+          message = `Server error (${parseRes.status})`;
+        }
+        throw new Error(message);
       }
 
       const parsed = (await parseRes.json()) as ParsedExpense[];
@@ -90,7 +96,8 @@ export function ExpenseForm() {
       });
 
       if (!saveRes.ok) {
-        const data = (await saveRes.json()) as { error?: string };
+        let data: { error?: string } = {};
+        try { data = (await saveRes.json()) as { error?: string }; } catch {}
         throw new Error(data.error || "Failed to save");
       }
 
