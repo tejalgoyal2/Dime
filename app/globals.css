@@ -1,26 +1,125 @@
 @import "tailwindcss";
 
+/*
+ * RIZZUAL CREATIVE BRIEF — Dime
+ * Vibe: sharp playful scorched
+ * Object: matte black receipt with "yikes" in red ink
+ * Palette: Scorched Gold (vermilion fire + amber gold on obsidian)
+ * Fonts: Syne (display) + JetBrains Mono (body)
+ * Moves: Bento Grid, Mono Accent, Staggered Reveal
+ */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #0a0a0a;
+  --surface: #141414;
+  --surface-raised: #1c1c1c;
+  --border: #2a2a2a;
+  --border-subtle: #1f1f1f;
+
+  --text: #f4f0e8;
+  --text-muted: #8a8580;
+  --text-dimmed: #555;
+
+  --accent: #e85d3a;
+  --accent-hover: #f06a45;
+  --accent-muted: rgba(232, 93, 58, 0.15);
+
+  --gold: #f0a830;
+  --gold-hover: #f5b840;
+  --gold-muted: rgba(240, 168, 48, 0.12);
+
+  --success: #3dd68c;
+  --success-muted: rgba(61, 214, 140, 0.12);
+  --destructive: #ef4444;
+  --destructive-muted: rgba(239, 68, 68, 0.12);
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+
+  color-scheme: dark;
+}
+
+[data-theme="light"] {
+  --background: #faf8f4;
+  --surface: #ffffff;
+  --surface-raised: #f5f3ef;
+  --border: #e5e0d8;
+  --border-subtle: #ede8e2;
+
+  --text: #1a1810;
+  --text-muted: #6a6560;
+  --text-dimmed: #9a958e;
+
+  --accent: #d4533b;
+  --accent-hover: #c04830;
+  --accent-muted: rgba(212, 83, 59, 0.1);
+
+  --gold: #c78a20;
+  --gold-hover: #b07818;
+  --gold-muted: rgba(199, 138, 32, 0.08);
+
+  --success: #22a66a;
+  --success-muted: rgba(34, 166, 106, 0.08);
+  --destructive: #dc2626;
+  --destructive-muted: rgba(220, 38, 38, 0.08);
+
+  color-scheme: light;
 }
 
 @theme inline {
   --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  --color-foreground: var(--text);
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-border: var(--border);
+  --color-border-subtle: var(--border-subtle);
+  --color-muted: var(--text-muted);
+  --color-dimmed: var(--text-dimmed);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-muted: var(--accent-muted);
+  --color-gold: var(--gold);
+  --color-gold-hover: var(--gold-hover);
+  --color-gold-muted: var(--gold-muted);
+  --color-success: var(--success);
+  --color-success-muted: var(--success-muted);
+  --color-destructive: var(--destructive);
+  --color-destructive-muted: var(--destructive-muted);
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --font-display: "Syne", sans-serif;
+  --font-body: "JetBrains Mono", monospace;
 }
 
 body {
   background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 13px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+::selection {
+  background: var(--accent-muted);
+  color: var(--accent);
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--background);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-dimmed);
 }
