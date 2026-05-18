@@ -179,8 +179,6 @@ Two things that will save you hours if you fork this:
 
 Dime is a ground-up rewrite of [WalletRIP](https://github.com/tejalgoyal2/WalletRIP). Same concept, different everything: server-side writes, TypeScript strict, Zod validation, persistent rate limiting, Cloudflare Workers instead of Vercel, and a design system ([Neon Midnight](https://github.com/tejalgoyal2/Dime/blob/main/app/globals.css)) that doesn't look like it was scaffolded at 3am.
 
-The full build walkthrough — including every error encountered and how it was fixed — is documented in [WALKTHROUGH.md](./WALKTHROUGH.md).
-
 ---
 
 ## What Could Come Next
