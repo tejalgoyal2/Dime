@@ -39,7 +39,7 @@ function DashboardContent({ callsign, isAdmin }: DashboardShellProps) {
   const { state } = useExpenses();
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-3xl flex-col px-4 py-6">
+    <div className="mx-auto flex min-h-screen max-w-5xl flex-col px-4 py-6 sm:px-6">
       {/* Header */}
       <motion.header
         initial={{ opacity: 0, y: -8 }}
@@ -69,52 +69,53 @@ function DashboardContent({ callsign, isAdmin }: DashboardShellProps) {
         animate="show"
         className="flex flex-1 flex-col gap-6"
       >
-        {/* Expense Input */}
-        <motion.section variants={fadeUp}>
-          <ExpenseForm />
+        {/* Expense Input + Toolbar row */}
+        <motion.section variants={fadeUp} className="flex flex-col gap-3 sm:flex-row sm:items-start sm:gap-4">
+          <div className="flex-1">
+            <ExpenseForm />
+          </div>
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none sm:pt-0.5">
+            <BulkImportModal />
+            <CsvExport />
+            <SubscriptionHunter />
+            <MonthlyRoast />
+          </div>
         </motion.section>
 
-        {/* Toolbar */}
-        <motion.section
-          variants={fadeUp}
-          className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none"
-        >
-          <BulkImportModal />
-          <CsvExport />
-          <SubscriptionHunter />
-          <MonthlyRoast />
-        </motion.section>
+        {/* Main content grid: charts + insights left, expenses right on desktop */}
+        <div className="grid gap-6 lg:grid-cols-[1fr_1.2fr]">
+          {/* Left column: Charts + Insights */}
+          <div className="flex flex-col gap-4">
+            {state.isLoading ? (
+              <motion.div variants={fadeUp} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
+                <Skeleton className="h-[200px]" />
+                <Skeleton className="h-[200px]" />
+              </motion.div>
+            ) : (
+              <motion.div variants={fadeUp} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
+                <ErrorBoundary>
+                  <SpendingChart />
+                </ErrorBoundary>
+                <ErrorBoundary>
+                  <TrendsChart />
+                </ErrorBoundary>
+              </motion.div>
+            )}
 
-        {/* Charts */}
-        {state.isLoading ? (
-          <motion.section variants={fadeUp} className="grid gap-4 sm:grid-cols-2">
-            <Skeleton className="h-[200px]" />
-            <Skeleton className="h-[200px]" />
-          </motion.section>
-        ) : (
-          <motion.section variants={fadeUp} className="grid gap-4 sm:grid-cols-2">
+            <motion.div variants={fadeUp}>
+              <ErrorBoundary>
+                <InsightsCard />
+              </ErrorBoundary>
+            </motion.div>
+          </div>
+
+          {/* Right column: Expense List */}
+          <motion.div variants={fadeUp} className="flex-1">
             <ErrorBoundary>
-              <SpendingChart />
+              <ExpenseTable />
             </ErrorBoundary>
-            <ErrorBoundary>
-              <TrendsChart />
-            </ErrorBoundary>
-          </motion.section>
-        )}
-
-        {/* Insights */}
-        <motion.section variants={fadeUp}>
-          <ErrorBoundary>
-            <InsightsCard />
-          </ErrorBoundary>
-        </motion.section>
-
-        {/* Expense List */}
-        <motion.section variants={fadeUp} className="flex-1">
-          <ErrorBoundary>
-            <ExpenseTable />
-          </ErrorBoundary>
-        </motion.section>
+          </motion.div>
+        </div>
       </motion.main>
     </div>
   );

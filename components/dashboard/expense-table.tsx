@@ -15,7 +15,7 @@ function TypeBadge({ type }: { type: "Need" | "Want" }) {
       className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium ${
         type === "Need"
           ? "bg-[var(--success-muted)] text-[var(--success)]"
-          : "bg-[var(--gold-muted)] text-[var(--gold)]"
+          : "bg-[var(--want-muted)] text-[var(--want)]"
       }`}
     >
       {type}

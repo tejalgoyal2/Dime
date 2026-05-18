@@ -24,9 +24,8 @@
   --accent-hover: #33ffaa;
   --accent-muted: rgba(0, 255, 136, 0.1);
 
-  --gold: #00cc6a;
-  --gold-hover: #00e077;
-  --gold-muted: rgba(0, 204, 106, 0.08);
+  --want: #ffaa00;
+  --want-muted: rgba(255, 170, 0, 0.1);
 
   --success: #00ff88;
   --success-muted: rgba(0, 255, 136, 0.1);
@@ -55,9 +54,8 @@
   --accent-hover: #007a3d;
   --accent-muted: rgba(0, 153, 77, 0.08);
 
-  --gold: #008844;
-  --gold-hover: #006633;
-  --gold-muted: rgba(0, 136, 68, 0.06);
+  --want: #cc8800;
+  --want-muted: rgba(204, 136, 0, 0.08);
 
   --success: #00994d;
   --success-muted: rgba(0, 153, 77, 0.08);
@@ -79,9 +77,8 @@
   --color-accent: var(--accent);
   --color-accent-hover: var(--accent-hover);
   --color-accent-muted: var(--accent-muted);
-  --color-gold: var(--gold);
-  --color-gold-hover: var(--gold-hover);
-  --color-gold-muted: var(--gold-muted);
+  --color-want: var(--want);
+  --color-want-muted: var(--want-muted);
   --color-success: var(--success);
   --color-success-muted: var(--success-muted);
   --color-destructive: var(--destructive);
