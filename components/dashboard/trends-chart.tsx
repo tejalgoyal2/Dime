@@ -84,8 +84,12 @@ export function TrendsChart() {
                 border: "1px solid var(--border)",
                 borderRadius: "var(--radius-sm)",
                 fontSize: "11px",
+                color: "var(--text)",
               }}
+              labelStyle={{ color: "var(--text-muted)" }}
+              itemStyle={{ color: "var(--text)" }}
               formatter={(value) => `$${Number(value).toFixed(2)}`}
+              cursor={{ fill: "var(--accent-muted)" }}
             />
             <Bar dataKey="needs" stackId="a" fill="#00ff88" radius={[0, 0, 0, 0]} />
             <Bar dataKey="wants" stackId="a" fill="#ffaa00" radius={[2, 2, 0, 0]} />

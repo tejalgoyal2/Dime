@@ -117,6 +117,29 @@ function DashboardContent({ callsign, isAdmin }: DashboardShellProps) {
           </motion.div>
         </div>
       </motion.main>
+
+      {/* Footer */}
+      <footer className="mt-8 flex items-center justify-center gap-3 pb-6 text-[10px] text-[var(--text-dimmed)]">
+        <span>Dime</span>
+        <span>·</span>
+        <a
+          href="https://github.com/tejalgoyal2/Dime"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="transition-colors hover:text-[var(--text-muted)]"
+        >
+          GitHub
+        </a>
+        <span>·</span>
+        <a
+          href="https://tgoyal.me"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="transition-colors hover:text-[var(--text-muted)]"
+        >
+          tgoyal.me
+        </a>
+      </footer>
     </div>
   );
 }

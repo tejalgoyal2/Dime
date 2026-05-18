@@ -53,7 +53,10 @@ export function SpendingChart() {
                   border: "1px solid var(--border)",
                   borderRadius: "var(--radius-sm)",
                   fontSize: "11px",
+                  color: "var(--text)",
                 }}
+                labelStyle={{ color: "var(--text-muted)" }}
+                itemStyle={{ color: "var(--text)" }}
               />
             </PieChart>
           </ResponsiveContainer>

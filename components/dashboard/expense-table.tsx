@@ -43,8 +43,18 @@ export function ExpenseTable() {
     toast(ok ? "Gone. Like your money." : "Delete failed", ok ? "info" : "error");
   }
 
+  const total = state.expenses.reduce((sum, e) => sum + (e.amount ?? 0), 0);
+
   return (
-    <div className="space-y-1">
+    <div className="space-y-2">
+      <div className="flex items-center justify-between px-1">
+        <h3 className="font-[family-name:var(--font-display)] text-xs font-semibold text-[var(--text)]">
+          Expenses
+        </h3>
+        <span className="text-[10px] tabular-nums text-[var(--text-dimmed)]">
+          {state.expenses.length} items · ${total.toFixed(2)}
+        </span>
+      </div>
       <AnimatePresence>
         {state.expenses.map((expense: ExpenseRow) => (
           <motion.div
