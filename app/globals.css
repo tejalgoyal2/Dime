@@ -2,36 +2,36 @@
 
 /*
  * RIZZUAL CREATIVE BRIEF — Dime
- * Vibe: sharp playful scorched
- * Object: matte black receipt with "yikes" in red ink
- * Palette: Scorched Gold (vermilion fire + amber gold on obsidian)
+ * Vibe: sharp electric terminal
+ * Object: a developer's IDE at 2am — dark, focused, with one neon accent
+ * Palette: Neon Midnight (electric green on pure dark)
  * Fonts: Syne (display) + JetBrains Mono (body)
  * Moves: Bento Grid, Mono Accent, Staggered Reveal
  */
 
 :root {
-  --background: #0a0a0a;
-  --surface: #141414;
-  --surface-raised: #1c1c1c;
-  --border: #2a2a2a;
+  --background: #0d0d0d;
+  --surface: #1a1a1a;
+  --surface-raised: #222222;
+  --border: #2e2e2e;
   --border-subtle: #1f1f1f;
 
-  --text: #f4f0e8;
-  --text-muted: #8a8580;
-  --text-dimmed: #555;
+  --text: #f0f0f0;
+  --text-muted: #888888;
+  --text-dimmed: #555555;
 
-  --accent: #e85d3a;
-  --accent-hover: #f06a45;
-  --accent-muted: rgba(232, 93, 58, 0.15);
+  --accent: #00ff88;
+  --accent-hover: #33ffaa;
+  --accent-muted: rgba(0, 255, 136, 0.1);
 
-  --gold: #f0a830;
-  --gold-hover: #f5b840;
-  --gold-muted: rgba(240, 168, 48, 0.12);
+  --gold: #00cc6a;
+  --gold-hover: #00e077;
+  --gold-muted: rgba(0, 204, 106, 0.08);
 
-  --success: #3dd68c;
-  --success-muted: rgba(61, 214, 140, 0.12);
-  --destructive: #ef4444;
-  --destructive-muted: rgba(239, 68, 68, 0.12);
+  --success: #00ff88;
+  --success-muted: rgba(0, 255, 136, 0.1);
+  --destructive: #ff4444;
+  --destructive-muted: rgba(255, 68, 68, 0.1);
 
   --radius-sm: 6px;
   --radius-md: 10px;
@@ -41,28 +41,28 @@
 }
 
 [data-theme="light"] {
-  --background: #faf8f4;
+  --background: #f6f9f7;
   --surface: #ffffff;
-  --surface-raised: #f5f3ef;
-  --border: #e5e0d8;
-  --border-subtle: #ede8e2;
+  --surface-raised: #f0f4f2;
+  --border: #dce5df;
+  --border-subtle: #e8eeea;
 
-  --text: #1a1810;
-  --text-muted: #6a6560;
-  --text-dimmed: #9a958e;
+  --text: #0d1a12;
+  --text-muted: #5a6b60;
+  --text-dimmed: #8a9a8f;
 
-  --accent: #d4533b;
-  --accent-hover: #c04830;
-  --accent-muted: rgba(212, 83, 59, 0.1);
+  --accent: #00994d;
+  --accent-hover: #007a3d;
+  --accent-muted: rgba(0, 153, 77, 0.08);
 
-  --gold: #c78a20;
-  --gold-hover: #b07818;
-  --gold-muted: rgba(199, 138, 32, 0.08);
+  --gold: #008844;
+  --gold-hover: #006633;
+  --gold-muted: rgba(0, 136, 68, 0.06);
 
-  --success: #22a66a;
-  --success-muted: rgba(34, 166, 106, 0.08);
+  --success: #00994d;
+  --success-muted: rgba(0, 153, 77, 0.08);
   --destructive: #dc2626;
-  --destructive-muted: rgba(220, 38, 38, 0.08);
+  --destructive-muted: rgba(220, 38, 38, 0.06);
 
   color-scheme: light;
 }

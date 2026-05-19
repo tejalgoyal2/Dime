@@ -14,26 +14,23 @@ export default function Icon() {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          background: "#0a0a0a",
-          borderRadius: "50%",
+          background: "#0d0d0d",
         }}
       >
-        <div
-          style={{
-            width: 24,
-            height: 24,
-            borderRadius: "50%",
-            border: "2px solid #e85d3a",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: "#f0a830",
-            fontSize: 14,
-            fontWeight: 700,
-          }}
-        >
-          ¢
-        </div>
+        <svg width="24" height="24" viewBox="0 0 32 32">
+          <path
+            d="M16 4 L26 16 L16 28 L6 16 Z"
+            stroke="#00ff88"
+            strokeWidth="2.5"
+            strokeLinejoin="round"
+            fill="none"
+          />
+          <path
+            d="M16 10 L21 16 L16 22 L11 16 Z"
+            fill="#00ff88"
+            fillOpacity="0.3"
+          />
+        </svg>
       </div>
     ),
     { ...size }
