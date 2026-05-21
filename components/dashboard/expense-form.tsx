@@ -120,7 +120,7 @@ export function ExpenseForm() {
           onChange={(e) => setInput(e.target.value)}
           placeholder={PLACEHOLDERS[placeholderIdx]}
           disabled={isLoading}
-          className="flex-1 rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--background)] px-3 py-2.5 text-sm text-[var(--text)] placeholder:text-[var(--text-dimmed)] transition-colors focus:border-[var(--gold)] focus:outline-none focus:ring-1 focus:ring-[var(--gold)] disabled:opacity-50"
+          className="flex-1 rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--background)] px-3 py-2.5 text-sm text-[var(--text)] placeholder:text-[var(--text-dimmed)] transition-colors focus:border-[var(--accent)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)] disabled:opacity-50"
         />
         <Button type="submit" disabled={isLoading || !input.trim()}>
           {isLoading ? (

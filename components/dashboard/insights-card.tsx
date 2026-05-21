@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { subDays, parseISO } from "date-fns";
 import { useExpenses } from "@/components/providers/expenses-provider";
 import { Button } from "@/components/ui/button";
@@ -55,19 +56,42 @@ export function InsightsCard() {
         </Button>
       </div>
 
-      {isLoading && <Skeleton className="h-12 w-full" />}
+      <AnimatePresence mode="wait">
+        {isLoading && (
+          <motion.div
+            key="loading"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <Skeleton className="h-12 w-full" />
+          </motion.div>
+        )}
 
-      {insight && !isLoading && (
-        <p className="text-xs leading-relaxed text-[var(--text-muted)]">
-          {insight}
-        </p>
-      )}
+        {insight && !isLoading && (
+          <motion.p
+            key="insight"
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.2 }}
+            className="text-xs leading-relaxed text-[var(--text-muted)]"
+          >
+            {insight}
+          </motion.p>
+        )}
 
-      {!insight && !isLoading && (
-        <p className="text-[10px] text-[var(--text-dimmed)]">
-          hit generate to get a 30-day spending summary
-        </p>
-      )}
+        {!insight && !isLoading && (
+          <motion.p
+            key="placeholder"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-[10px] text-[var(--text-dimmed)]"
+          >
+            hit generate to get a 30-day spending summary
+          </motion.p>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
