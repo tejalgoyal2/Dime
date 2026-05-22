@@ -20,6 +20,27 @@ export const metadata: Metadata = {
   title: "Dime",
   description: "AI-powered expense tracker. Type it, track it, roast it.",
   metadataBase: new URL("https://dime.tgoyal.me"),
+  openGraph: {
+    title: "Dime",
+    description: "Every cent has a story. Usually a bad one.",
+    url: "https://dime.tgoyal.me",
+    siteName: "Dime",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "Dime — AI-powered expense tracker",
+      },
+    ],
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Dime",
+    description: "Every cent has a story. Usually a bad one.",
+    images: ["/og-image.png"],
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
