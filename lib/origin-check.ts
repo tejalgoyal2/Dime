@@ -1,5 +1,5 @@
 const ALLOWED_ORIGINS = [
-  "https://wallet.tgoyal.me",
+  "https://dime.tgoyal.me",
   "http://localhost:3000",
 ];
 

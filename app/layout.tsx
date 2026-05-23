@@ -19,7 +19,7 @@ const jetbrains = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "Dime",
   description: "AI-powered expense tracker. Type it, track it, roast it.",
-  metadataBase: new URL("https://wallet.tgoyal.me"),
+  metadataBase: new URL("https://dime.tgoyal.me"),
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",

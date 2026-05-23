@@ -2,7 +2,7 @@
 
 AI-powered expense tracker. Type naturally, let Gemini handle the rest.
 
-**Live at:** [wallet.tgoyal.me](https://wallet.tgoyal.me)
+**Live at:** [dime.tgoyal.me](https://dime.tgoyal.me)
 
 ## Features
 
@@ -117,7 +117,7 @@ Content-Type: application/json
 2. Create a new shortcut
 3. Add **"Ask for Input"** action -> Type: Text, Prompt: "What did you spend?"
 4. Add **"Get Contents of URL"** action:
-   - URL: `https://wallet.tgoyal.me/api/quick-add`
+   - URL: `https://dime.tgoyal.me/api/quick-add`
    - Method: POST
    - Headers: `Authorization: Bearer YOUR_TOKEN`
    - Request Body: JSON -> `{"text": "[Ask for Input result]"}`
