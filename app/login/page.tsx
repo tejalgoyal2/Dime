@@ -335,7 +335,8 @@ export default function LoginPage() {
             )}
             <div ref={reply} key={shown} className={`flex items-center gap-2 ${shown === "hello" ? "" : "swap-in"}`}>
                 {shown === "hello" && (
-                  <div className="flex w-full gap-2">
+                  // The two answers settle in once the intro has been said.
+                  <div className="rise flex w-full gap-2" style={{ "--y": "8px", "--d": "1.6s" } as React.CSSProperties}>
                     <button type="button" onClick={() => choose("in")} className="h-12 flex-1 rounded-[10px] bg-ink text-[15px] font-semibold text-paper transition-transform active:scale-[0.98]">
                       Yep, sign me in
                     </button>
