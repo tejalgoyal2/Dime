@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import { ThemeProvider } from "@/components/providers/theme-provider";
-import { ToastProvider } from "@/components/providers/toast-provider";
 import "./globals.css";
 
 // Chillax by Indian Type Foundry (Fontshare, free for commercial use).
@@ -70,7 +69,7 @@ export default function RootLayout({
       </head>
       <body>
         <ThemeProvider>
-          <ToastProvider>{children}</ToastProvider>
+          {children}
         </ThemeProvider>
       </body>
     </html>
