@@ -23,8 +23,8 @@ export class ErrorBoundary extends Component<Props, State> {
     if (this.state.hasError) {
       return (
         this.props.fallback ?? (
-          <div className="flex flex-col items-center gap-3 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] p-6 text-center">
-            <p className="text-xs text-[var(--text-muted)]">
+          <div className="flex flex-col items-center gap-3 rounded-[10px] bg-surface p-6 shadow-sm text-center">
+            <p className="text-[14px] text-ink-2">
               Something broke. It happens.
             </p>
             <Button

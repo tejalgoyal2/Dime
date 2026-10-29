@@ -1,7 +1,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { checkRateLimit, getRequestIp } from "@/lib/rate-limit";
+import { checkAiBudget, checkRateLimit, getRequestIp } from "@/lib/rate-limit";
 import { isValidOrigin } from "@/lib/origin-check";
 import { apiError } from "@/lib/api-error";
 import { withRetry } from "@/lib/gemini-retry";
@@ -34,6 +34,11 @@ export async function POST(request: NextRequest) {
     } = await supabase.auth.getUser();
     if (authError || !user) {
       return apiError("Unauthorized", "UNAUTHORIZED", 401);
+    }
+
+    const budget = await checkAiBudget(user.id);
+    if (!budget.allowed) {
+      return apiError("That's enough AI for today. It resets tomorrow.", "RATE_LIMITED", 429, budget.retryAfter);
     }
 
     const apiKey = process.env.GEMINI_API_KEY;
@@ -89,20 +94,21 @@ Summary stats:
 Expense log:
 ${expenseList}
 
-Write a 2–3 sentence summary. Rules:
-- Speak directly to the user as "you"
-- Mention at least one specific amount or category name
-- Note one pattern (positive or concerning)
-- Keep it under 75 words, plain prose — no bullet points, no markdown
-- All amounts are in Canadian Dollars (CAD)`;
+Reply with exactly two lines and nothing else:
+Line 1: a 2–3 sentence read of their spending. Speak to the user as "you", mention at least one specific amount or category, and note one pattern (good or worrying). Under 60 words, plain English, no markdown.
+Line 2: starts with "Try:" and gives ONE specific, realistic thing to do next month to save money, with a rough monthly saving in dollars. Under 30 words.
+All amounts are in Canadian Dollars (CAD).`;
 
     const model = getGeminiModel(apiKey);
     const result = await withRetry(() => model.generateContent(prompt));
-    const insight = result.response.text().trim();
+    const text = result.response.text().trim();
+    const tipAt = text.search(/^\s*Try:/im);
+    const insight = (tipAt >= 0 ? text.slice(0, tipAt) : text).trim();
+    const tip = tipAt >= 0 ? text.slice(tipAt).replace(/^\s*Try:\s*/i, "").trim() : null;
 
-    return NextResponse.json({ insight });
+    return NextResponse.json({ insight, tip });
   } catch (error: unknown) {
-    const msg = error instanceof Error ? error.message : "Internal error";
-    return apiError(msg, "INTERNAL_ERROR", 500);
+    console.error(error);
+    return apiError("Something went wrong", "INTERNAL_ERROR", 500);
   }
 }

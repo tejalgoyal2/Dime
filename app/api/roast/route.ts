@@ -1,7 +1,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { checkRateLimit, getRequestIp } from "@/lib/rate-limit";
+import { checkAiBudget, checkRateLimit, getRequestIp } from "@/lib/rate-limit";
 import { isValidOrigin } from "@/lib/origin-check";
 import { apiError } from "@/lib/api-error";
 import { withRetry } from "@/lib/gemini-retry";
@@ -28,6 +28,11 @@ export async function POST(request: NextRequest) {
       return apiError("Unauthorized", "UNAUTHORIZED", 401);
     }
 
+    const budget = await checkAiBudget(user.id);
+    if (!budget.allowed) {
+      return apiError("That's enough AI for today. It resets tomorrow.", "RATE_LIMITED", 429, budget.retryAfter);
+    }
+
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
       return apiError("GEMINI_API_KEY not configured", "MISSING_CONFIG", 500);
@@ -49,7 +54,7 @@ export async function POST(request: NextRequest) {
 
     const expenseSummary = expenses
       .slice(0, 20)
-      .map((e) => `${e.item_name} ($${e.amount}) - ${e.type}`)
+      .map((e) => `${String(e.item_name).slice(0, 80)} ($${Number(e.amount) || 0}) - ${e.type === "Want" ? "Want" : "Need"}`)
       .join("\n");
 
     const prompt = `Analyze this list of expenses:
@@ -67,7 +72,7 @@ Keep it under 60 words. Be brutal but funny.`;
 
     return NextResponse.json({ roast });
   } catch (error: unknown) {
-    const msg = error instanceof Error ? error.message : "Internal error";
-    return apiError(msg, "INTERNAL_ERROR", 500);
+    console.error(error);
+    return apiError("Something went wrong", "INTERNAL_ERROR", 500);
   }
 }

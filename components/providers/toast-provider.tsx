@@ -1,70 +1,48 @@
 "use client";
 
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useState,
-} from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { createContext, useCallback, useContext } from "react";
+import { MotionConfig } from "framer-motion";
+import { Toaster, toast as sonner } from "sonner";
+import { useTheme } from "@/components/providers/theme-provider";
 
 type ToastType = "success" | "error" | "info";
-
-interface Toast {
-  id: number;
-  message: string;
-  type: ToastType;
-}
+type ToastAction = { label: string; onClick: () => void };
 
 const ToastContext = createContext<{
-  toast: (message: string, type?: ToastType) => void;
+  toast: (message: string, type?: ToastType, action?: ToastAction) => void;
 }>({ toast: () => {} });
 
 export function useToast() {
   return useContext(ToastContext);
 }
 
-let toastId = 0;
-
+/**
+ * Toasts stack in the corner (Sonner): newest in front, older ones tucked
+ * behind; hover the stack to fan it out. Ones with an action stay longer.
+ */
 export function ToastProvider({ children }: { children: React.ReactNode }) {
-  const [toasts, setToasts] = useState<Toast[]>([]);
+  const { theme } = useTheme();
 
-  const toast = useCallback((message: string, type: ToastType = "info") => {
-    const id = ++toastId;
-    setToasts((prev) => [...prev, { id, message, type }]);
-    setTimeout(() => {
-      setToasts((prev) => prev.filter((t) => t.id !== id));
-    }, 4000);
+  const toast = useCallback((message: string, type: ToastType = "info", action?: ToastAction) => {
+    const opts = { action, duration: action ? 7000 : 3200 };
+    if (type === "error") sonner.error(message, opts);
+    else sonner(message, opts);
   }, []);
 
   return (
     <ToastContext.Provider value={{ toast }}>
-      {children}
-      <div
-        className="fixed top-4 right-4 z-[100] flex flex-col gap-2"
-        aria-live="polite"
-      >
-        <AnimatePresence>
-          {toasts.map((t) => (
-            <motion.div
-              key={t.id}
-              initial={{ opacity: 0, x: 40 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 40 }}
-              transition={{ duration: 0.2 }}
-              className={`rounded-[var(--radius-md)] border px-4 py-2.5 text-xs font-medium shadow-lg backdrop-blur-sm ${
-                t.type === "success"
-                  ? "border-[var(--success)] bg-[var(--success-muted)] text-[var(--success)]"
-                  : t.type === "error"
-                    ? "border-[var(--destructive)] bg-[var(--destructive-muted)] text-[var(--destructive)]"
-                    : "border-[var(--border)] bg-[var(--surface)] text-[var(--text)]"
-              }`}
-            >
-              {t.message}
-            </motion.div>
-          ))}
-        </AnimatePresence>
-      </div>
+      <MotionConfig reducedMotion="user">{children}</MotionConfig>
+      <Toaster
+        position="bottom-right"
+        theme={theme}
+        gap={10}
+        offset={28}
+        visibleToasts={4}
+        toastOptions={{
+          className: "dime-toast",
+          actionButtonStyle: { background: "var(--lego)", color: "#fff", borderRadius: 8, fontWeight: 600, padding: "0 12px", height: 30 },
+        }}
+      />
     </ToastContext.Provider>
   );
 }

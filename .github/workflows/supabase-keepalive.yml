@@ -1,0 +1,57 @@
+name: Supabase keep-alive
+
+# Free Supabase projects pause after 7 days of inactivity. This writes a row
+# every 3 days so that never happens. Setup: run supabase/keepalive.sql once,
+# then add the SUPABASE_SERVICE_ROLE_KEY secret (NEXT_PUBLIC_SUPABASE_URL is
+# already set for the deploy workflow). Either a new secret key (sb_secret_…)
+# or the legacy service_role JWT works: new keys go only in the apikey header.
+
+on:
+  schedule:
+    - cron: "17 9 */3 * *"
+  workflow_dispatch:
+
+permissions:
+  actions: write # lets the job re-enable itself (see last step)
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      SUPABASE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+
+    steps:
+      - name: Insert keep-alive row
+        run: |
+          set -euo pipefail
+          auth=()
+          case "$SUPABASE_KEY" in eyJ*) auth=(-H "Authorization: Bearer $SUPABASE_KEY") ;; esac
+          status=$(curl -sS -o /tmp/out -w '%{http_code}' --retry 3 --retry-delay 10 \
+            -X POST "$SUPABASE_URL/rest/v1/keepalive" \
+            -H "apikey: $SUPABASE_KEY" "${auth[@]}" \
+            -H "Content-Type: application/json" \
+            -H "Prefer: return=minimal" \
+            -d '{"source":"github-actions"}')
+          cat /tmp/out
+          if [ "$status" -ge 300 ]; then
+            echo "::error::Supabase responded $status"
+            exit 1
+          fi
+          echo "Supabase pinged ($status)"
+
+      - name: Prune rows older than 30 days
+        run: |
+          auth=()
+          case "$SUPABASE_KEY" in eyJ*) auth=(-H "Authorization: Bearer $SUPABASE_KEY") ;; esac
+          cutoff=$(date -u -d '30 days ago' +%Y-%m-%dT%H:%M:%SZ)
+          curl -sS -X DELETE "$SUPABASE_URL/rest/v1/keepalive?pinged_at=lt.$cutoff" \
+            -H "apikey: $SUPABASE_KEY" "${auth[@]}" || true
+
+      # GitHub disables scheduled workflows after 60 days with no repo
+      # activity. Re-enabling resets that clock, so this keeps itself alive too.
+      - name: Keep this workflow enabled
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow enable supabase-keepalive.yml --repo "$GITHUB_REPOSITORY" || true

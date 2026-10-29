@@ -30,7 +30,7 @@ Type `"coffee at starbucks $5"` — Gemini handles the rest: amount, category, e
 
 **AI parsing** — Gemini extracts the amount, picks a category and emoji, classifies Need vs Want, and writes a Hinglish roast.
 
-**Quick Add API** — log expenses from Siri, Apple Shortcuts, Raycast, or `curl` without opening the app. Bearer token auth, no cookies needed.
+**Log from anywhere** — Siri, Apple Shortcuts, Raycast, bank-text automations or `curl`. Personal, revocable tokens.
 
 **AI insights** — on-demand 30-day spending analysis. It notices patterns you'd rather it didn't.
 
@@ -61,37 +61,43 @@ Browser → Next.js App Router → API Routes → Supabase / Gemini / Upstash
 
 The client never writes to the database directly. Every mutation goes through API routes with auth checks, Zod validation, and rate limiting.
 
-**API routes:** `GET/POST/DELETE/PATCH /api/expenses`, `POST /api/parse`, `POST /api/quick-add`, `POST /api/insights`, `POST /api/roast`, `POST /api/analyze-subs`, `POST /api/validate-invite`
+**API routes:** `GET/POST/DELETE/PATCH /api/expenses`, `POST /api/parse`, `POST /api/quick-add`, `POST /api/insights`, `POST /api/roast`, `POST /api/analyze-subs`, `POST /api/signup`, `POST /api/ingest`, `GET/POST/DELETE /api/tokens`, `GET/PUT /api/preferences`
 
 **State management:** React Context + `useReducer` with optimistic updates and rollback on failure.
 
 ---
 
-## Quick Add API
+## Log from anywhere (the API)
 
-Log expenses without the UI. Works with Siri Shortcuts, Raycast, iOS Automations, or anything that sends HTTP.
+Log expenses without opening Dime: Siri Shortcuts, Raycast, a phone automation that forwards bank texts, or plain `curl`. Make a personal token in the app (avatar → Auto-log). It's shown once and stored only as a SHA-256 hash; revoke it any time.
 
 ```bash
-curl -X POST https://dime.tgoyal.me/api/quick-add \
-  -H "Authorization: Bearer YOUR_TOKEN" \
+# A note, the way you'd type it in the app
+curl -X POST https://dime.tgoyal.me/api/ingest \
+  -H "Authorization: Bearer dime_..." \
   -H "Content-Type: application/json" \
-  -d '{"text": "coffee at starbucks $5.50"}'
+  -d '{"text": "coffee & croissant 7"}'
+
+# A bank alert, forwarded by an automation
+curl -X POST https://dime.tgoyal.me/api/ingest \
+  -H "Authorization: Bearer dime_..." \
+  -H "Content-Type: application/json" \
+  -d '{"text": "Your Visa *4417 was charged $14.85 at BLUE BOTTLE COFFEE", "source": "sms"}'
 ```
 
-```json
-{
-  "success": true,
-  "expense": {
-    "item_name": "Coffee at Starbucks",
-    "amount": 5.50,
-    "category": "Food & Drink",
-    "type": "Want",
-    "emoji": "☕"
-  }
-}
-```
+It answers with an empty `204 No Content`; automations don't need a reply. The outcome is in the `X-Dime-Status` header: `logged`, `ignored` (OTPs, refunds, deposits, declines, no amount) or `duplicate` (the same bank alert twice logs once). The AI only reads the message; the roasts stay in the app.
 
-**Apple Shortcut setup:** New Shortcut → Ask for Input → Get Contents of URL (POST to `/api/quick-add` with Bearer token) → Show Notification. Name it "Log Expense" and trigger it with Siri.
+- `source` is `api` (default), `shortcut`, `sms`, `email` or `notification`. Only alerts (`sms`, `email`, `notification`) are de-duplicated; two "coffee 5"s in a day are two coffees.
+- A plain-text body works too: `-H "Content-Type: text/plain" -d "uber home 18"`.
+- Optional `date` (`YYYY-MM-DD`) backdates it.
+
+**Apple Shortcut:** Ask for Input → Get Contents of URL (POST, header `Authorization: Bearer dime_...`, JSON body `text` = input) (no need to show the result). Name it "Log Expense" and trigger it with Siri.
+
+**Limits** (so nobody can run up the bill): 30 requests a minute per IP, checked before anything else; 12 a minute per token; 300 AI reads per person per day across the app and the API; bodies over 8 KB are refused. Errors come back as `{ "error", "code", "retryAfter" }` with 401, 413, 422 or 429.
+
+`/api/quick-add` is the older endpoint. It now runs the same pipeline and accepts personal tokens; the legacy shared `QUICK_ADD_TOKEN` still works while it's set.
+
+Needs `supabase/migrations/002_dashboard_autolog.sql`, the `SUPABASE_SERVICE_ROLE_KEY` secret (a Supabase secret key, `sb_secret_…`, or the legacy service_role key) and Upstash.
 
 ---
 
@@ -147,11 +153,13 @@ lib/
 
 All mutations go through server API routes — the client never writes to Supabase directly. This was the single biggest change from [WalletRIP](https://github.com/tejalgoyal2/WalletRIP) (the v1 that did client-side inserts).
 
-**Auth:** Supabase cookie sessions with middleware protection. Signup is invite-gated with strict rate limiting (5 req / 15 min per IP).
+**Auth:** Supabase cookie sessions with middleware protection. Signup is invite-gated and happens on the server (the invite code is checked before the account is created, with 5 tries / 15 min per IP); public Supabase sign-ups should be switched off.
 
 **Validation:** Zod v4 schemas validate every request body server-side.
 
-**Rate limiting:** Upstash Redis sliding window — persistent across Workers isolates. Standard routes: 20 req/min. Invite validation: 5 req/15 min.
+**Rate limiting:** Upstash Redis, persistent across Workers isolates, keyed on Cloudflare's `cf-connecting-ip` (which clients can't forge). App routes: 20 req/min. Invite validation: 5 req/15 min. Public API: 30/min per IP and 12/min per token. AI: 300 calls per person per day.
+
+**Headers:** `X-Frame-Options: DENY`, `nosniff`, HSTS, a strict referrer policy and a locked-down permissions policy on every response.
 
 **Origin checking:** API routes validate the `Origin` header.
 

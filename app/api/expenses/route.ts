@@ -23,20 +23,23 @@ export async function GET() {
 
     if (!user) return apiError("Unauthorized", "UNAUTHORIZED", 401);
 
+    // "*" so the optional `source` column comes through once the auto-log
+    // migration has run, without breaking before it has.
     const { data, error } = await supabase
       .from("expenses")
-      .select(COLUMNS)
+      .select("*")
       .order("date", { ascending: false })
       .order("created_at", { ascending: false });
 
     if (error) {
-      return apiError(error.message, "INTERNAL_ERROR", 500);
+      console.error(error);
+      return apiError("Couldn't load your expenses", "INTERNAL_ERROR", 500);
     }
 
     return NextResponse.json(data as ExpenseRow[]);
   } catch (error: unknown) {
-    const msg = error instanceof Error ? error.message : "Internal error";
-    return apiError(msg, "INTERNAL_ERROR", 500);
+    console.error(error);
+    return apiError("Something went wrong", "INTERNAL_ERROR", 500);
   }
 }
 
@@ -83,13 +86,14 @@ export async function POST(request: NextRequest) {
       .select(COLUMNS);
 
     if (error) {
-      return apiError(error.message, "INTERNAL_ERROR", 500);
+      console.error(error);
+      return apiError("Couldn't load your expenses", "INTERNAL_ERROR", 500);
     }
 
     return NextResponse.json(data as ExpenseRow[], { status: 201 });
   } catch (error: unknown) {
-    const msg = error instanceof Error ? error.message : "Internal error";
-    return apiError(msg, "INTERNAL_ERROR", 500);
+    console.error(error);
+    return apiError("Something went wrong", "INTERNAL_ERROR", 500);
   }
 }
 
@@ -119,13 +123,14 @@ export async function DELETE(request: NextRequest) {
       .eq("user_id", user.id);
 
     if (error) {
-      return apiError(error.message, "INTERNAL_ERROR", 500);
+      console.error(error);
+      return apiError("Couldn't load your expenses", "INTERNAL_ERROR", 500);
     }
 
     return NextResponse.json({ success: true });
   } catch (error: unknown) {
-    const msg = error instanceof Error ? error.message : "Internal error";
-    return apiError(msg, "INTERNAL_ERROR", 500);
+    console.error(error);
+    return apiError("Something went wrong", "INTERNAL_ERROR", 500);
   }
 }
 
@@ -162,12 +167,17 @@ export async function PATCH(request: NextRequest) {
       .select(COLUMNS);
 
     if (error) {
-      return apiError(error.message, "INTERNAL_ERROR", 500);
+      console.error(error);
+      return apiError("Couldn't load your expenses", "INTERNAL_ERROR", 500);
+    }
+
+    if (!data?.length) {
+      return apiError("Expense not found", "NOT_FOUND", 404);
     }
 
     return NextResponse.json(data[0] as ExpenseRow);
   } catch (error: unknown) {
-    const msg = error instanceof Error ? error.message : "Internal error";
-    return apiError(msg, "INTERNAL_ERROR", 500);
+    console.error(error);
+    return apiError("Something went wrong", "INTERNAL_ERROR", 500);
   }
 }

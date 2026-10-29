@@ -1,11 +1,12 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { checkRateLimit, getRequestIp } from "@/lib/rate-limit";
+import { checkAiBudget, checkRateLimit, getRequestIp } from "@/lib/rate-limit";
 import { isValidOrigin } from "@/lib/origin-check";
 import { apiError } from "@/lib/api-error";
 import { withRetry } from "@/lib/gemini-retry";
 import { getGeminiModel, PARSE_SAFETY_SETTINGS } from "@/lib/gemini";
+import { ISO_DATE, LOCAL_DATE_HEADER } from "@/lib/dates";
 
 const buildPrompt = (input: string, today: string) => `
 You are an assistant that only outputs valid JSON.
@@ -71,6 +72,11 @@ export async function POST(request: NextRequest) {
       return apiError("Unauthorized", "UNAUTHORIZED", 401);
     }
 
+    const budget = await checkAiBudget(user.id);
+    if (!budget.allowed) {
+      return apiError("That's enough AI for today. It resets tomorrow.", "RATE_LIMITED", 429, budget.retryAfter);
+    }
+
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
       return apiError("GEMINI_API_KEY not configured", "MISSING_CONFIG", 500);
@@ -86,7 +92,11 @@ export async function POST(request: NextRequest) {
     }
 
     const model = getGeminiModel(apiKey, PARSE_SAFETY_SETTINGS);
-    const today = new Date().toISOString().split("T")[0];
+    const clientDate = request.headers.get(LOCAL_DATE_HEADER);
+    const today =
+      clientDate && ISO_DATE.test(clientDate)
+        ? clientDate
+        : new Date().toISOString().split("T")[0];
     const result = await withRetry(() =>
       model.generateContent(buildPrompt(body, today))
     );
@@ -107,11 +117,12 @@ export async function POST(request: NextRequest) {
       error instanceof Error ? error.message : "Unknown error occurred.";
     const status = (error as { status?: number })?.status;
     const isRateLimited = status === 429 || message.includes("429");
+    if (!isRateLimited) console.error(error);
 
     return apiError(
       isRateLimited
         ? "AI service rate limited, try again in a minute."
-        : `Parse failed: ${message}`,
+        : "Couldn't read that. Try again?",
       isRateLimited ? "RATE_LIMITED" : "AI_PARSE_ERROR",
       isRateLimited ? 429 : 500
     );

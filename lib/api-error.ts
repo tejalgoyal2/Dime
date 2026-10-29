@@ -7,7 +7,8 @@ export type ApiErrorCode =
   | "AI_PARSE_ERROR"
   | "INTERNAL_ERROR"
   | "INVALID_ORIGIN"
-  | "MISSING_CONFIG";
+  | "MISSING_CONFIG"
+  | "NOT_FOUND";
 
 type ApiErrorResponse = {
   error: string;

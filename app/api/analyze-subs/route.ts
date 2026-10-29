@@ -1,7 +1,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { checkRateLimit, getRequestIp } from "@/lib/rate-limit";
+import { checkAiBudget, checkRateLimit, getRequestIp } from "@/lib/rate-limit";
 import { isValidOrigin } from "@/lib/origin-check";
 import { apiError } from "@/lib/api-error";
 import { withRetry } from "@/lib/gemini-retry";
@@ -28,6 +28,11 @@ export async function POST(request: NextRequest) {
       return apiError("Unauthorized", "UNAUTHORIZED", 401);
     }
 
+    const budget = await checkAiBudget(user.id);
+    if (!budget.allowed) {
+      return apiError("That's enough AI for today. It resets tomorrow.", "RATE_LIMITED", 429, budget.retryAfter);
+    }
+
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
       return apiError("GEMINI_API_KEY not configured", "MISSING_CONFIG", 500);
@@ -50,7 +55,8 @@ export async function POST(request: NextRequest) {
     }
 
     const expenseSummary = expenses
-      .map((e) => `${e.date}: ${e.item_name} ($${e.amount})`)
+      .slice(0, 400)
+      .map((e) => `${String(e.date).slice(0, 10)}: ${String(e.item_name).slice(0, 80)} ($${Number(e.amount) || 0})`)
       .join("\n");
 
     const prompt = `Analyze these expenses to identify potential recurring subscriptions (e.g., Netflix, Spotify, Gym, iCloud, or same amount recurring monthly).
@@ -75,7 +81,7 @@ Return a JSON object with this EXACT structure (no markdown, just raw JSON):
 
     return NextResponse.json(data);
   } catch (error: unknown) {
-    const msg = error instanceof Error ? error.message : "Internal error";
-    return apiError(msg, "INTERNAL_ERROR", 500);
+    console.error(error);
+    return apiError("Something went wrong", "INTERNAL_ERROR", 500);
   }
 }

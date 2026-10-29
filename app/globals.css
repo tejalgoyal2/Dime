@@ -1,138 +1,347 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
 /*
- * RIZZUAL CREATIVE BRIEF — Dime
- * Vibe: sharp electric terminal
- * Object: a developer's IDE at 2am — dark, focused, with one neon accent
- * Palette: Neon Midnight (electric green on pure dark)
- * Fonts: Syne (display) + JetBrains Mono (body)
- * Moves: Bento Grid, Mono Accent, Staggered Reveal
+ * Dime. Neutral surfaces, one colour for Life and one for Lego.
+ * Type is Chillax throughout.
  */
 
+/*
+ * Palettes. Each is neutral surfaces tinted towards its own hue, plus one
+ * colour for Life (needs) and one for Lego (wants). Graphite is the default.
+ *
+ * Night isn't an inversion. Surfaces get lighter as they come forward
+ * (page < panel < paper) because shadows barely read on dark; raised things
+ * get a faint top edge instead; text sits at ~90% not pure white; and the
+ * two accents are lifted and softened so they glow less and stay legible.
+ */
 :root {
-  --background: #0d0d0d;
-  --surface: #1a1a1a;
-  --surface-raised: #222222;
-  --border: #2e2e2e;
-  --border-subtle: #1f1f1f;
-
-  --text: #f0f0f0;
-  --text-muted: #888888;
-  --text-dimmed: #555555;
-
-  --accent: #00ff88;
-  --accent-hover: #33ffaa;
-  --accent-muted: rgba(0, 255, 136, 0.1);
-
-  --want: #ffaa00;
-  --want-muted: rgba(255, 170, 0, 0.1);
-
-  --success: #00ff88;
-  --success-muted: rgba(0, 255, 136, 0.1);
-  --destructive: #ff4444;
-  --destructive-muted: rgba(255, 68, 68, 0.1);
-
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 14px;
-
+  --line: color-mix(in oklab, var(--ink) 10%, transparent);
+  --line-strong: color-mix(in oklab, var(--ink) 20%, transparent);
+  --edge: transparent;
+  --danger: #d23b1f;
+  --shadow-paper: inset 0 1px 0 var(--edge), 0 1px 1px rgba(20, 20, 24, 0.05), 0 8px 24px -12px rgba(20, 20, 24, 0.22);
+  --shadow-lift: inset 0 1px 0 var(--edge), 0 2px 4px rgba(20, 20, 24, 0.08), 0 26px 50px -16px rgba(20, 20, 24, 0.35);
+  color-scheme: light;
+}
+[data-theme="dark"] {
+  --line: color-mix(in oklab, var(--ink) 9%, transparent);
+  --line-strong: color-mix(in oklab, var(--ink) 17%, transparent);
+  --edge: rgba(255, 255, 255, 0.055);
+  --danger: #ff7559;
+  --shadow-paper: inset 0 1px 0 var(--edge), 0 1px 2px rgba(0, 0, 0, 0.5), 0 12px 28px -14px rgba(0, 0, 0, 0.7);
+  --shadow-lift: inset 0 1px 0 var(--edge), 0 2px 6px rgba(0, 0, 0, 0.5), 0 30px 60px -18px rgba(0, 0, 0, 0.85);
   color-scheme: dark;
 }
 
-[data-theme="light"] {
-  --background: #f6f9f7;
-  --surface: #ffffff;
-  --surface-raised: #f0f4f2;
-  --border: #dce5df;
-  --border-subtle: #e8eeea;
+:root {
+  --oat: #ececea;
+  --panel: #e1e1de;
+  --paper: #f9f9f8;
+  --ink: #18181a;
+  --ink-2: #57575a;
+  --ink-3: #8d8d90;
+  --life: #2c2c30;
+  --lego: #f07a00;
+  --butter: #ffd27a;
+}
+[data-theme="dark"] {
+  --oat: #121213;
+  --panel: #1b1b1d;
+  --paper: #242427;
+  --ink: #ececea;
+  --ink-2: #a6a6a4;
+  --ink-3: #6d6d70;
+  --life: #d6d6d2;
+  --lego: #ff9933;
+  --butter: #6e5520;
+}
 
-  --text: #0d1a12;
-  --text-muted: #5a6b60;
-  --text-dimmed: #8a9a8f;
+[data-palette="watermelon"] {
+  --oat: #eef1ed;
+  --panel: #e0e6df;
+  --paper: #fafcf9;
+  --ink: #16201a;
+  --ink-2: #536058;
+  --ink-3: #87938b;
+  --life: #1d8a57;
+  --lego: #e2467b;
+  --butter: #ffe08a;
+}
+[data-theme="dark"][data-palette="watermelon"] {
+  --oat: #0e1310;
+  --panel: #161d18;
+  --paper: #1e2620;
+  --ink: #e6eee8;
+  --ink-2: #a0aea5;
+  --ink-3: #66746b;
+  --life: #52c690;
+  --lego: #ff7aa3;
+  --butter: #5e4f1c;
+}
 
-  --accent: #00994d;
-  --accent-hover: #007a3d;
-  --accent-muted: rgba(0, 153, 77, 0.08);
+[data-palette="cherry"] {
+  --oat: #eeefe9;
+  --panel: #e1e4da;
+  --paper: #fafbf6;
+  --ink: #1b1e19;
+  --ink-2: #585d54;
+  --ink-3: #8b9086;
+  --life: #4f6e58;
+  --lego: #c42638;
+  --butter: #f6dc8c;
+}
+[data-theme="dark"][data-palette="cherry"] {
+  --oat: #111310;
+  --panel: #1a1d17;
+  --paper: #22261f;
+  --ink: #e9ece3;
+  --ink-2: #a6ab9e;
+  --ink-3: #6b7065;
+  --life: #97b89f;
+  --lego: #ff5a6b;
+  --butter: #5f521f;
+}
 
-  --want: #cc8800;
-  --want-muted: rgba(204, 136, 0, 0.08);
+[data-palette="forest"] {
+  --oat: #edefea;
+  --panel: #dfe4dc;
+  --paper: #f9faf7;
+  --ink: #15201a;
+  --ink-2: #526057;
+  --ink-3: #86938a;
+  --life: #23573f;
+  --lego: #e39a00;
+  --butter: #ffe2a0;
+}
+[data-theme="dark"][data-palette="forest"] {
+  --oat: #0d1310;
+  --panel: #151d18;
+  --paper: #1c2620;
+  --ink: #e5ede8;
+  --ink-2: #9fafa5;
+  --ink-3: #64736a;
+  --life: #6fbf95;
+  --lego: #ffb627;
+  --butter: #5a4a16;
+}
 
-  --success: #00994d;
-  --success-muted: rgba(0, 153, 77, 0.08);
-  --destructive: #dc2626;
-  --destructive-muted: rgba(220, 38, 38, 0.06);
+[data-palette="plum"] {
+  --oat: #f1eef0;
+  --panel: #e6e0e4;
+  --paper: #fcfafb;
+  --ink: #221a20;
+  --ink-2: #61545d;
+  --ink-3: #958791;
+  --life: #5b2d57;
+  --lego: #ee7f4f;
+  --butter: #ffd9a8;
+}
+[data-theme="dark"][data-palette="plum"] {
+  --oat: #141013;
+  --panel: #1e181c;
+  --paper: #272026;
+  --ink: #f0e8ee;
+  --ink-2: #b3a4ae;
+  --ink-3: #776973;
+  --life: #c99bc4;
+  --lego: #ff9566;
+  --butter: #5c3f22;
+}
 
-  color-scheme: light;
+[data-palette="espresso"] {
+  --oat: #efece8;
+  --panel: #e4ded7;
+  --paper: #fbf9f6;
+  --ink: #231b16;
+  --ink-2: #63574e;
+  --ink-3: #978a80;
+  --life: #5a3e2e;
+  --lego: #d5832b;
+  --butter: #f7dca6;
+}
+[data-theme="dark"][data-palette="espresso"] {
+  --oat: #14110f;
+  --panel: #1e1a16;
+  --paper: #28221d;
+  --ink: #f0e8e0;
+  --ink-2: #b5a99d;
+  --ink-3: #786d63;
+  --life: #c9a58a;
+  --lego: #f0a04b;
+  --butter: #5b4420;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--text);
-  --color-surface: var(--surface);
-  --color-surface-raised: var(--surface-raised);
-  --color-border: var(--border);
-  --color-border-subtle: var(--border-subtle);
-  --color-muted: var(--text-muted);
-  --color-dimmed: var(--text-dimmed);
-  --color-accent: var(--accent);
-  --color-accent-hover: var(--accent-hover);
-  --color-accent-muted: var(--accent-muted);
-  --color-want: var(--want);
-  --color-want-muted: var(--want-muted);
-  --color-success: var(--success);
-  --color-success-muted: var(--success-muted);
-  --color-destructive: var(--destructive);
-  --color-destructive-muted: var(--destructive-muted);
+  --font-sans: var(--font-chillax), ui-rounded, system-ui, sans-serif;
 
-  --font-display: "Syne", sans-serif;
-  --font-body: "JetBrains Mono", monospace;
+  --color-oat: var(--oat);
+  --color-panel: var(--panel);
+  --color-paper: var(--paper);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-life: var(--life);
+  --color-lego: var(--lego);
+  --color-butter: var(--butter);
+  --color-danger: var(--danger);
+
+  /* Older names, still used by the trays. */
+  --color-bg: var(--oat);
+  --color-surface: var(--paper);
+  --color-sunken: var(--panel);
+  --color-chili: var(--lego);
+  --color-need: var(--life);
+
+  --shadow-paper: var(--shadow-paper);
+  --shadow-lift: var(--shadow-lift);
+  --shadow-edge: inset 0 1px 0 var(--edge);
+}
+
+html {
+  -webkit-tap-highlight-color: transparent;
+  background: var(--oat);
 }
 
 body {
-  background: var(--background);
-  color: var(--text);
-  font-family: var(--font-body);
-  font-size: 13px;
-  line-height: 1.6;
+  background: var(--oat);
+  color: var(--ink);
+  font-family: var(--font-chillax), ui-rounded, system-ui, sans-serif;
+  font-size: 15px;
+  font-weight: 450;
+  line-height: 1.45;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 ::selection {
-  background: var(--accent-muted);
-  color: var(--accent);
+  background: var(--lego);
+  color: #fff;
 }
 
-::-webkit-scrollbar {
-  width: 6px;
+button,
+a,
+[tabindex] {
+  outline-color: var(--ink);
+}
+button:focus-visible,
+a:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+  border-radius: 8px;
 }
 
-::-webkit-scrollbar-track {
-  background: var(--background);
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
 }
 
-::-webkit-scrollbar-thumb {
-  background: var(--border);
-  border-radius: 3px;
+/* A dark card in light mode (and a light one at night). */
+.inverse {
+  background: var(--ink);
+  color: var(--oat);
+}
+.inverse > * {
+  --ink: var(--oat);
+  --ink-2: color-mix(in oklab, var(--oat) 72%, transparent);
+  --ink-3: color-mix(in oklab, var(--oat) 50%, transparent);
+  --line: color-mix(in oklab, var(--oat) 16%, transparent);
+  --panel: color-mix(in oklab, var(--oat) 12%, transparent);
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: var(--text-dimmed);
+/* Receipt paper: a torn, zig-zag bottom edge. */
+.torn {
+  --tooth: 9px;
+  -webkit-mask:
+    linear-gradient(#000 0 0) top / 100% calc(100% - var(--tooth)) no-repeat,
+    conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) bottom / calc(var(--tooth) * 2) var(--tooth) repeat-x;
+  mask:
+    linear-gradient(#000 0 0) top / 100% calc(100% - var(--tooth)) no-repeat,
+    conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) bottom / calc(var(--tooth) * 2) var(--tooth) repeat-x;
 }
 
-/* Utility: hide scrollbar but keep scroll */
+/* Dotted leader between a receipt line's name and its price. */
+.leader {
+  flex: 1;
+  min-width: 12px;
+  height: 1px;
+  margin: 0 8px;
+  transform: translateY(-4px);
+  background-image: radial-gradient(circle, var(--ink-3) 0.9px, transparent 1.1px);
+  background-size: 5px 2px;
+  background-repeat: repeat-x;
+  opacity: 0.7;
+}
+
+.cents {
+  font-size: 0.55em;
+  margin-top: 0.1em;
+  margin-left: 0.03em;
+  letter-spacing: 0;
+}
+
+/* Sonner toasts, in Dime's type and colours. */
+[data-sonner-toaster] {
+  font-family: inherit !important;
+}
+.dime-toast {
+  background: var(--ink) !important;
+  color: var(--paper) !important;
+  border: 0 !important;
+  border-radius: 12px !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  box-shadow: var(--shadow-lift) !important;
+  padding: 14px 16px !important;
+}
+
 .scrollbar-none {
-  -ms-overflow-style: none;
   scrollbar-width: none;
 }
-
 .scrollbar-none::-webkit-scrollbar {
   display: none;
 }
 
-/* Focus-visible ring for accessibility */
-:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Command menu group headings */
+.cmdk-group [cmdk-group-heading] {
+  padding: 10px 12px 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-3);
+}
+
+/* Switching day/night or palette crossfades instead of snapping. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 0.38s;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* A small pop-in, for grids of many things (cheaper than a JS spring each). */
+.pop {
+  animation: pop 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: scale(0.4);
+  }
 }

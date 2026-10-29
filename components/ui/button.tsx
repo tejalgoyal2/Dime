@@ -1,31 +1,30 @@
 import { type ButtonHTMLAttributes } from "react";
 
-type Variant = "primary" | "secondary" | "ghost" | "destructive";
+type Variant = "primary" | "secondary" | "ghost" | "danger";
+type Size = "sm" | "md" | "lg";
 
 const variants: Record<Variant, string> = {
-  primary:
-    "bg-[var(--accent)] text-[#0d0d0d] font-semibold hover:bg-[var(--accent-hover)] active:scale-[0.97]",
-  secondary:
-    "bg-[var(--surface-raised)] text-[var(--text)] border border-[var(--border)] hover:border-[var(--accent)] hover:text-[var(--accent)]",
-  ghost:
-    "text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-raised)]",
-  destructive:
-    "bg-[var(--destructive-muted)] text-[var(--destructive)] border border-transparent hover:border-[var(--destructive)]",
+  primary: "bg-ink text-paper hover:opacity-90",
+  secondary: "border border-line-strong text-ink hover:bg-sunken",
+  ghost: "text-ink-2 hover:bg-sunken hover:text-ink",
+  danger: "bg-danger text-white hover:opacity-90",
+};
+
+const sizes: Record<Size, string> = {
+  sm: "h-8 px-3 text-[13px]",
+  md: "h-9 px-3.5 text-[13px]",
+  lg: "h-11 px-5 text-[14px]",
 };
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: Variant;
+  size?: Size;
 }
 
-export function Button({
-  variant = "primary",
-  className = "",
-  children,
-  ...props
-}: ButtonProps) {
+export function Button({ variant = "primary", size = "md", className = "", children, ...props }: ButtonProps) {
   return (
     <button
-      className={`inline-flex items-center justify-center gap-2 rounded-[var(--radius-sm)] px-3.5 py-2 text-xs font-medium transition-all duration-150 disabled:pointer-events-none disabled:opacity-40 ${variants[variant]} ${className}`}
+      className={`inline-flex shrink-0 select-none items-center justify-center gap-1.5 whitespace-nowrap rounded-[8px] font-medium transition-[transform,opacity,background-color] duration-150 active:scale-[0.97] disabled:pointer-events-none disabled:opacity-35 ${variants[variant]} ${sizes[size]} ${className}`}
       {...props}
     >
       {children}
