@@ -406,3 +406,58 @@ input[type="number"] {
   75% { rotate: 3deg; translate: 0 2px; }
 }
 @media (prefers-reduced-motion: reduce) { .six-seven { animation: none; } }
+
+/*
+ * Login motion, in CSS so /login ships no animation library. The springs are
+ * the ones framer-motion ran (stiffness / damping), sampled into linear().
+ * Delays come in through --d.
+ */
+:root {
+  --ease-enter: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-soft: cubic-bezier(0.25, 0.1, 0.35, 1);
+  /* 420 / 34, 0.36s */
+  --spring-bubble: linear(0, 0.026, 0.092, 0.181, 0.28, 0.382, 0.48, 0.571, 0.652, 0.724, 0.785, 0.836, 0.879, 0.913, 0.94, 0.961, 0.976, 0.988, 0.997, 1.002, 1.006, 1.008, 1.009, 1.009, 1.009, 1.008, 1.008, 1.007, 1.006, 1.005, 1);
+  /* 520 / 32, 0.32s */
+  --spring-pop: linear(0, 0.026, 0.094, 0.187, 0.293, 0.404, 0.513, 0.615, 0.706, 0.786, 0.853, 0.908, 0.952, 0.985, 1.01, 1.027, 1.038, 1.043, 1.045, 1.044, 1.042, 1.037, 1.033, 1.028, 1.023, 1.018, 1.014, 1.01, 1.007, 1.004, 1);
+  /* 110 / 18, 0.67s */
+  --spring-receipt: linear(0, 0.024, 0.084, 0.165, 0.257, 0.352, 0.445, 0.532, 0.611, 0.681, 0.743, 0.796, 0.84, 0.877, 0.907, 0.932, 0.951, 0.966, 0.978, 0.987, 0.993, 0.998, 1.001, 1.003, 1.004, 1.005, 1.005, 1.005, 1.005, 1.004, 1);
+  /* 500 / 28, 0.42s */
+  --spring-press: linear(0, 0.043, 0.149, 0.289, 0.441, 0.588, 0.721, 0.833, 0.922, 0.989, 1.035, 1.063, 1.077, 1.08, 1.076, 1.067, 1.056, 1.043, 1.032, 1.021, 1.012, 1.005, 1, 0.997, 0.995, 0.994, 0.994, 0.994, 0.995, 0.996, 1);
+  /* 500 / 25, 0.42s */
+  --spring-drop: linear(0, 0.043, 0.152, 0.299, 0.459, 0.617, 0.759, 0.88, 0.974, 1.043, 1.088, 1.112, 1.12, 1.116, 1.104, 1.086, 1.067, 1.048, 1.031, 1.016, 1.004, 0.996, 0.99, 0.987, 0.986, 0.986, 0.987, 0.989, 0.992, 0.994, 1);
+}
+@keyframes fade-in { from { opacity: 0; } }
+@keyframes rise { from { opacity: 0; translate: 0 var(--y, 12px); scale: var(--s, 1); } }
+
+/* Headline, copy and the chat card settle in. */
+.rise { animation: rise 0.7s var(--ease-enter) var(--d, 0s) both; }
+/* Each message lands on its own spring. */
+.msg-in { animation: rise 0.36s var(--spring-bubble) var(--d, 0s) both; }
+/* The sample receipt drops in and tilts. */
+.receipt-in { rotate: -2deg; animation: receipt-in 0.67s var(--spring-receipt) 0.35s both; }
+@keyframes receipt-in { from { opacity: 0; translate: 0 16px; rotate: 0deg; } }
+.drop-in {
+  --y: -6px;
+  animation: fade-in 0.3s var(--ease-soft) var(--d, 0s) both, rise 0.42s var(--spring-drop) var(--d, 0s) both;
+}
+/* The typing bubble pops in, then keeps breathing. */
+.typing-bubble.typing-pop {
+  animation: typing-pop 0.32s var(--spring-pop) both, typing-breathe 2.4s ease-in-out infinite;
+}
+@keyframes typing-pop { from { opacity: 0; transform: translateY(6px) scale(0.8); } }
+/* The reply box swaps: out up, in from below. */
+.swap-in { --y: 8px; animation: rise 0.18s cubic-bezier(0.42, 0, 0.58, 1) both; }
+/* Send: shrinks while there's nothing to send, squishes when pressed. */
+.send { transition: scale 0.42s var(--spring-press), opacity 0.42s var(--spring-press); }
+.send:disabled { scale: 0.9; opacity: 0.35; }
+.send:not(:disabled):active { scale: 0.9; }
+/* Day / night: the old icon turns out, then the new one turns in. */
+.coin-out { animation: coin-out 0.2s cubic-bezier(0.42, 0, 0.58, 1) both; }
+.coin-in { animation: coin-in 0.2s cubic-bezier(0.42, 0, 0.58, 1) 0.2s both; }
+@keyframes coin-out { to { opacity: 0; rotate: 90deg; } }
+@keyframes coin-in { from { opacity: 0; rotate: -90deg; } }
+@media (prefers-reduced-motion: reduce) {
+  .rise, .msg-in, .receipt-in, .drop-in, .swap-in, .typing-bubble.typing-pop, .coin-in, .coin-out { animation-name: fade-in; }
+  .coin-out { animation-direction: reverse; }
+  .send { transition-property: opacity; }
+}

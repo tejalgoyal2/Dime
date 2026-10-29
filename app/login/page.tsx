@@ -2,10 +2,8 @@
 
 import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
-import { AnimatePresence, animate, motion } from "framer-motion";
-import { createClient } from "@/lib/supabase/client";
 import { emailForName } from "@/lib/callsign";
-import { Bubble, TypingBubble } from "@/components/dime/bubble";
+import { StillBubble, StillTypingBubble } from "@/components/dime/still-bubble";
 import { Wordmark } from "@/components/ui/wordmark";
 import { CoinToggle } from "@/components/ui/coin-toggle";
 
@@ -33,6 +31,11 @@ const sixSeven = (s: string) => /^\s*6\s*[-–]?\s*7\s*$|six\s*seven/i.test(s);
 const noop = () => () => {};
 let seq = 100;
 
+// The thread's spring (stiffness 380, damping 36), sampled for the Web Animations API.
+const THREAD_SPRING =
+  "linear(0, 0.019, 0.067, 0.133, 0.209, 0.289, 0.369, 0.446, 0.519, 0.585, 0.645, 0.699, 0.746, 0.787, 0.823, 0.854, 0.88, 0.902, 0.921, 0.936, 0.949, 0.959, 0.968, 0.975, 0.981, 0.985, 0.989, 0.992, 0.994, 0.996, 1)";
+const loadSupabase = () => import("@/lib/supabase/client");
+
 /**
  * Signing in is a conversation with me (Tejal). I ask, you answer in the
  * reply box, and the answers are the form. Name and secret only.
@@ -57,6 +60,7 @@ export default function LoginPage() {
   // it grew and spring it back to 0. One transform, so nothing can overlap.
   const list = useRef<HTMLDivElement>(null);
   const lastHeight = useRef<number | null>(null);
+  const slide = useRef<Animation | null>(null);
   useLayoutEffect(() => {
     const el = list.current;
     const box = scroller.current;
@@ -66,13 +70,45 @@ export default function LoginPage() {
     lastHeight.current = height;
     box.scrollTop = box.scrollHeight;
     if (!grew) return;
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     const now = new DOMMatrixReadOnly(getComputedStyle(el).transform).m42;
-    animate(el, { y: [now + grew, 0] }, { type: "spring", stiffness: 380, damping: 36 });
+    slide.current?.cancel();
+    slide.current = el.animate([{ transform: `translateY(${now + grew}px)` }, { transform: "translateY(0)" }], {
+      duration: 320,
+      easing: THREAD_SPRING,
+    });
   }, [msgs.length, typing]);
+
+  // The reply box swaps like a presence: the old one leaves, then the new one
+  // comes in. `shown` trails `step` by the length of the exit.
+  const [shown, setShown] = useState(step);
+  const latest = useRef(step);
+  const reply = useRef<HTMLDivElement>(null);
+  const leaving = useRef(false);
+  useEffect(() => {
+    latest.current = step;
+    if (step === shown || leaving.current) return;
+    const el = reply.current;
+    if (!el) return;
+    leaving.current = true;
+    el.animate([{ opacity: 1, translate: "0 0" }, { opacity: 0, translate: "0 -6px" }], {
+      duration: 180,
+      easing: "cubic-bezier(0.42, 0, 0.58, 1)",
+      fill: "forwards",
+    }).finished.then(() => {
+      leaving.current = false;
+      setShown(latest.current);
+    });
+  }, [step, shown]);
 
   // Put the cursor in whichever box is showing.
   useEffect(() => {
-    if (step === "name" || step === "secret" || step === "invite") field.current?.focus();
+    if (shown === "name" || shown === "secret" || shown === "invite") field.current?.focus();
+  }, [shown]);
+
+  // Fetch the sign-in code while they type the secret, not on first paint.
+  useEffect(() => {
+    if (step === "secret") void loadSupabase();
   }, [step]);
 
   const you = (text: string) => setMsgs((m) => [...m, { id: seq++, from: "you", text }]);
@@ -140,13 +176,13 @@ export default function LoginPage() {
   async function go() {
     setStep("busy");
     setTyping(true);
-    const supabase = createClient();
     const email = emailForName(handle);
     const fail = (text: string, back: Step) => {
       setTyping(false);
       say([text], back, "lego");
     };
     try {
+      const supabase = (await loadSupabase()).createClient();
       if (mode === "new") {
         const res = await fetch("/api/signup", {
           method: "POST",
@@ -224,35 +260,25 @@ export default function LoginPage() {
 
       <section className="mx-auto grid w-full max-w-[1200px] flex-1 grid-cols-12 items-center gap-10 px-10 pb-10">
         <div className="col-span-12 lg:col-span-6">
-          <motion.h1
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-            className="text-[54px] font-semibold leading-[1.04] tracking-[-0.035em]"
+          <h1 className="rise text-[54px] font-semibold leading-[1.04] tracking-[-0.035em]"
           >
             Every cent has a story.
             <br />
             <span className="text-ink-3">Usually a bad one.</span>
-          </motion.h1>
-          <motion.p
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
-            className="mt-6 max-w-[460px] text-[18px] leading-relaxed text-ink-2"
+          </h1>
+          <p style={{ "--y": "10px", "--d": "0.1s" } as React.CSSProperties} className="rise mt-6 max-w-[460px] text-[18px] leading-relaxed text-ink-2"
           >
             Text it what you spent, like you&apos;d text a friend. It sorts everything into{" "}
             <span className="font-semibold text-life">Life</span> (you needed it) and <span className="font-semibold text-lego">Lego</span> (you
             wanted it), keeps the receipt, and tells you the truth.
-          </motion.p>
+          </p>
           <SampleReceipt />
         </div>
 
         {/* The conversation */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
-          className="col-span-12 flex h-[600px] flex-col overflow-hidden rounded-[14px] bg-paper shadow-paper lg:col-span-5 lg:col-start-8"
+        <div
+          style={{ "--y": "16px", "--d": "0.15s" } as React.CSSProperties}
+          className="rise col-span-12 flex h-[600px] flex-col overflow-hidden rounded-[14px] bg-paper shadow-paper lg:col-span-5 lg:col-start-8"
         >
           <div className="flex items-center gap-3 border-b border-line px-5 py-3.5">
             <span className="relative flex h-10 w-10 items-center justify-center rounded-full bg-ink text-[16px] font-semibold text-paper">
@@ -269,24 +295,27 @@ export default function LoginPage() {
             <div className="mt-auto" />
             <div ref={list} className="flex flex-col gap-2">
               {thread.map((m, i) => (
-                <motion.div
+                <div
                   key={m.id}
-                  initial={{ opacity: 0, y: m.id < 4 ? 10 : 0, scale: m.id < 4 ? 1 : 0.96 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  style={{ transformOrigin: m.from === "you" ? "100% 100%" : "0% 100%" }}
-                  transition={{ type: "spring", stiffness: 420, damping: 34, delay: m.id < 4 ? 0.35 + i * 0.45 : 0 }}
+                  className="msg-in"
+                  style={
+                    {
+                      transformOrigin: m.from === "you" ? "100% 100%" : "0% 100%",
+                      "--y": m.id < 4 ? "10px" : "0px",
+                      "--s": m.id < 4 ? 1 : 0.96,
+                      "--d": m.id < 4 ? `${0.35 + i * 0.45}s` : "0s",
+                    } as React.CSSProperties
+                  }
                 >
-                  <Bubble
+                  <StillBubble
                     text={m.text}
                     from={m.from === "you" ? "you" : "dime"}
                     tone={m.tone}
-                    instant
-                    still
                     className={m.from === "tejal" && !m.tone ? "!bg-oat !shadow-none" : "!shadow-none"}
                   />
-                </motion.div>
+                </div>
               ))}
-              {typing && <TypingBubble className="bg-oat" />}
+              {typing && <StillTypingBubble className="bg-oat" />}
             </div>
           </div>
 
@@ -304,31 +333,18 @@ export default function LoginPage() {
             {step !== "name" && (
               <input aria-hidden tabIndex={-1} readOnly value={name} autoComplete="username" className="pointer-events-none absolute h-0 w-0 opacity-0" />
             )}
-            <AnimatePresence mode="wait" initial={false}>
-              <motion.div
-                key={step === "busy" ? "busy" : step}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -6 }}
-                transition={{ duration: 0.18 }}
-                className="flex items-center gap-2"
-              >
-                {step === "hello" && (
-                  <motion.div
-                    className="flex w-full gap-2"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 1.8 }}
-                  >
+            <div ref={reply} key={shown} className={`flex items-center gap-2 ${shown === "hello" ? "" : "swap-in"}`}>
+                {shown === "hello" && (
+                  <div className="flex w-full gap-2">
                     <button type="button" onClick={() => choose("in")} className="h-12 flex-1 rounded-[10px] bg-ink text-[15px] font-semibold text-paper transition-transform active:scale-[0.98]">
                       Yep, sign me in
                     </button>
                     <button type="button" onClick={() => choose("new")} className="h-12 flex-1 rounded-[10px] bg-oat text-[15px] font-semibold text-ink transition-transform hover:bg-panel active:scale-[0.98]">
                       Nope, I&apos;m new
                     </button>
-                  </motion.div>
+                  </div>
                 )}
-                {step === "name" && (
+                {shown === "name" && (
                   <>
                     <input
                       ref={field}
@@ -344,7 +360,7 @@ export default function LoginPage() {
                     <Send disabled={!handle} />
                   </>
                 )}
-                {step === "secret" && (
+                {shown === "secret" && (
                   <>
                     <span className="relative flex min-w-0 flex-1">
                       <input
@@ -368,7 +384,7 @@ export default function LoginPage() {
                     <Send disabled={!secret} />
                   </>
                 )}
-                {step === "invite" && (
+                {shown === "invite" && (
                   <>
                     <input
                       ref={field}
@@ -382,16 +398,15 @@ export default function LoginPage() {
                     <Send disabled={!invite.trim()} />
                   </>
                 )}
-                {(step === "busy" || step === "done") && <div className="h-12 w-full rounded-[10px] bg-oat" />}
-              </motion.div>
-            </AnimatePresence>
+                {(shown === "busy" || shown === "done") && <div className="h-12 w-full rounded-[10px] bg-oat" />}
+            </div>
             {step === "secret" && mode === "in" && (
               <button type="button" onClick={back} className="mt-2 px-1 text-[13px] font-medium text-ink-3 hover:text-ink">
                 Not {handle}? Change name
               </button>
             )}
           </form>
-        </motion.div>
+        </div>
       </section>
 
       <footer className="mx-auto flex w-full max-w-[1200px] items-center justify-between px-10 pb-6 text-[13px] text-ink-3">
@@ -407,19 +422,16 @@ export default function LoginPage() {
 
 function Send({ disabled }: { disabled: boolean }) {
   return (
-    <motion.button
+    <button
       type="submit"
       aria-label="Send"
       disabled={disabled}
-      animate={{ scale: disabled ? 0.9 : 1, opacity: disabled ? 0.35 : 1 }}
-      whileTap={{ scale: 0.9 }}
-      transition={{ type: "spring", stiffness: 500, damping: 28 }}
-      className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[10px] bg-ink text-paper"
+      className="send flex h-12 w-12 shrink-0 items-center justify-center rounded-[10px] bg-ink text-paper"
     >
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
         <path d="M5 12h13M13 6l6 6-6 6" />
       </svg>
-    </motion.button>
+    </button>
   );
 }
 
@@ -433,23 +445,20 @@ const SAMPLE = [
 // What a day in Dime looks like, printed.
 function SampleReceipt() {
   return (
-    <motion.div
+    <div
       aria-hidden
-      initial={{ opacity: 0, y: 16, rotate: 0 }}
-      animate={{ opacity: 1, y: 0, rotate: -2 }}
-      transition={{ type: "spring", stiffness: 110, damping: 18, delay: 0.35 }}
-      className="mt-10 hidden w-[300px] [filter:drop-shadow(0_10px_18px_rgba(20,20,24,.14))] lg:block"
+      className="receipt-in mt-10 hidden w-[300px] [filter:drop-shadow(0_10px_18px_rgba(20,20,24,.14))] lg:block"
     >
       <div className="torn bg-paper px-5 pb-8 pt-5" style={{ borderRadius: "10px 10px 0 0" }}>
         <p className="text-center text-[12px] font-semibold uppercase tracking-[0.18em] text-ink-3">Today</p>
         <ul className="mt-3 space-y-2 text-[14px]">
           {SAMPLE.map((s, i) => (
-            <motion.li key={s.name} className="flex items-baseline" initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.8 + i * 0.3 }}>
+            <li key={s.name} className="drop-in flex items-baseline" style={{ "--d": `${0.8 + i * 0.3}s` } as React.CSSProperties}>
               <span className={`mr-2 inline-block h-2 w-2 rounded-full ${s.lego ? "bg-lego" : "bg-life"}`} />
               <span className="font-medium">{s.name}</span>
               <span className="leader" />
               <span className="font-semibold">{s.amt}</span>
-            </motion.li>
+            </li>
           ))}
         </ul>
         <div className="mt-4 border-t border-dashed border-line-strong pt-3 text-[13px] text-ink-2">
@@ -457,6 +466,6 @@ function SampleReceipt() {
         </div>
         <p className="mt-3 text-center text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-3">No refunds</p>
       </div>
-    </motion.div>
+    </div>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
+import { bubbleClass, Dots } from "@/components/dime/still-bubble";
 
 /**
  * One message in the conversation. Mine fade in word by word; yours land
@@ -26,7 +27,6 @@ export function Bubble({
   children?: React.ReactNode;
 }) {
   const you = from === "you";
-  const color = you ? "bg-ink text-paper" : tone === "lego" ? "bg-lego text-white" : "bg-paper text-ink";
   return (
     <motion.div
       layout={!still}
@@ -34,7 +34,7 @@ export function Bubble({
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ type: "spring", stiffness: 420, damping: 34 }}
       style={{ borderRadius: 14 }}
-      className={`relative w-fit max-w-full px-4 py-3 shadow-paper ${you ? "ml-auto !rounded-tr-[4px]" : "!rounded-tl-[4px]"} ${color} ${className}`}
+      className={`${bubbleClass(from, tone)} ${className}`}
     >
       <motion.div layout={still ? false : "position"}>
         {you || instant ? <p className="text-[16px] font-medium leading-snug">{text}</p> : <Typed text={text} />}
@@ -81,11 +81,7 @@ export function TypingBubble({ className = "bg-paper" }: { className?: string })
       aria-label="Typing"
       className={`typing-bubble w-fit rounded-[16px] rounded-tl-[4px] px-4 py-3.5 ${className}`}
     >
-      <span className="flex items-center gap-[5px]">
-        <i className="typing-dot" />
-        <i className="typing-dot" />
-        <i className="typing-dot" />
-      </span>
+      <Dots />
     </motion.div>
   );
 }
