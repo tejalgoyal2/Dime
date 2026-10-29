@@ -3,15 +3,16 @@ import type { NextConfig } from "next";
 const supabase = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
 const dev = process.env.NODE_ENV !== "production";
 
-// Only our own code runs, and the browser only talks to us and Supabase.
+// Only our own code runs (plus Cloudflare's analytics beacon), and the
+// browser only talks to us, Supabase and Cloudflare analytics.
 // Inline scripts stay allowed for Next's hydration data and the theme script.
 const csp = [
   "default-src 'self'",
-  `script-src 'self' 'unsafe-inline'${dev ? " 'unsafe-eval'" : ""}`,
+  `script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com${dev ? " 'unsafe-eval'" : ""}`,
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob:",
   "font-src 'self'",
-  `connect-src 'self' ${supabase} ${supabase.replace(/^https/, "wss")}`.trim(),
+  `connect-src 'self' https://cloudflareinsights.com ${supabase} ${supabase.replace(/^https/, "wss")}`.trim(),
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self'",
