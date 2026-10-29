@@ -1,9 +1,13 @@
-import { GoogleGenAI, HarmBlockThreshold, HarmCategory, type SafetySetting } from "@google/genai";
+import { GoogleGenAI, HarmBlockThreshold, HarmCategory, ThinkingLevel, type SafetySetting } from "@google/genai";
 
 // Every AI call in Dime goes through `ask`. It uses Google's current Gen AI
 // SDK and Flash-Lite model, retries when Google is busy, and falls back to
 // the "latest Flash-Lite" alias if the pinned model is ever retired, so a
 // model shutdown can't take logging down with it.
+//
+// Speed: newer Gemini models "think" before answering by default, which adds
+// seconds. Reading "coffee 5" doesn't need deep thought, so thinking is set to
+// minimal. If a model doesn't accept that setting, we drop it and carry on.
 
 const DEFAULT_MODEL = "gemini-3.5-flash-lite";
 const FALLBACK_MODEL = "gemini-flash-lite-latest";
@@ -32,20 +36,27 @@ const statusOf = (e: unknown) => (e as { status?: number; code?: number })?.stat
 
 export async function ask(apiKey: string, prompt: string, { json = false, parse = false }: AskOptions = {}): Promise<string> {
   const ai = new GoogleGenAI({ apiKey });
-  const config = {
+  const base = {
     ...(json ? { responseMimeType: "application/json" } : {}),
     ...(parse ? { safetySettings: PARSE_SAFETY } : {}),
   };
+  let quick = true;
 
   let model = modelName();
   let lastError: unknown;
   for (let attempt = 0; attempt <= RETRY_DELAYS.length; attempt++) {
     try {
+      const config = quick ? { ...base, thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL } } : base;
       const res = await ai.models.generateContent({ model, contents: prompt, config });
       return (res.text ?? "").trim();
     } catch (error) {
       lastError = error;
       const status = statusOf(error);
+      if (status === 400 && quick) {
+        quick = false; // this model doesn't take a thinking level: ask normally
+        attempt--;
+        continue;
+      }
       if (status === 404 && model !== FALLBACK_MODEL) {
         model = FALLBACK_MODEL; // pinned model retired: switch, don't wait
         continue;

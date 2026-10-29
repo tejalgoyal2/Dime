@@ -175,7 +175,7 @@ export function TrendsCell() {
             className="absolute inset-x-0 bottom-[26px] top-0"
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -4 }}
+            exit={{ opacity: 0, y: -4, transition: { duration: 0.22, ease: [0.4, 0, 0.2, 1] } }}
             transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
           >
             {view === "bars" && (

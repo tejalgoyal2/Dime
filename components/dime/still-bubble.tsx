@@ -22,7 +22,7 @@ export function StillBubble({
 }) {
   return (
     <div style={{ borderRadius: 14 }} className={`${bubbleClass(from, tone)} ${className}`}>
-      <p className="text-[16px] font-medium leading-snug">{text}</p>
+      <p key={text} className="text-swap text-[16px] font-medium leading-snug">{text}</p>
     </div>
   );
 }

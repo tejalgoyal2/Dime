@@ -1,6 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
+import { LEAVE_QUICK } from "@/lib/motion";
 import { bubbleClass, Dots } from "@/components/dime/still-bubble";
 
 /**
@@ -48,7 +49,7 @@ export function Bubble({
 function Typed({ text }: { text: string }) {
   return (
     <AnimatePresence mode="popLayout" initial={false}>
-      <motion.p key={text} aria-live="polite" className="text-[16px] font-medium leading-snug" exit={{ opacity: 0, transition: { duration: 0.08 } }}>
+      <motion.p key={text} aria-live="polite" className="text-[16px] font-medium leading-snug" exit={{ opacity: 0, filter: "blur(2px)", transition: LEAVE_QUICK }}>
         {text.split(" ").map((w, i) => (
           <motion.span
             key={i}
@@ -74,7 +75,7 @@ export function TypingBubble({ className = "bg-paper" }: { className?: string })
     <motion.div
       initial={{ opacity: 0, scale: 0.8, y: 6 }}
       animate={{ opacity: 1, scale: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.8, transition: { duration: 0.12 } }}
+      exit={{ opacity: 0, scale: 0.85, transition: LEAVE_QUICK }}
       transition={{ type: "spring", stiffness: 520, damping: 32 }}
       style={{ transformOrigin: "0% 100%" }}
       role="status"

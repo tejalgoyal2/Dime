@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { CashBill } from "@/components/ui/cash-bill";
+import { BIG_SPEND } from "@/lib/amounts";
 import { motion } from "framer-motion";
 import { format, parseISO } from "date-fns";
 import { useExpenses } from "@/components/providers/expenses-provider";
@@ -38,6 +40,7 @@ export function HitsCell() {
                       {e.item_name}
                     </span>
                     <span className="text-[12px] text-ink-3">{format(parseISO(e.date), "d MMM")}</span>
+                    {e.amount >= BIG_SPEND && <CashBill size={18} className="self-center" />}
                     <span className="w-20 text-right font-semibold">{money(e.amount, 0)}</span>
                   </span>
                   <span className="ml-7 mt-1.5 block h-1.5 overflow-hidden rounded-full bg-oat">

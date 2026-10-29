@@ -24,14 +24,16 @@ const read = () => (document.documentElement.getAttribute("data-palette") ?? "gr
 export function usePalette() {
   const palette = useSyncExternalStore(subscribe, read, (): PaletteId => "graphite");
   function set(id: PaletteId) {
+    // Tell React only after the attribute changes. The crossfade runs this a
+    // beat later, and reading early is how quick clicks left the ring behind.
     applyWithFade(() => {
       if (id === "graphite") document.documentElement.removeAttribute("data-palette");
       else document.documentElement.setAttribute("data-palette", id);
+      window.dispatchEvent(new Event(EVENT));
     });
     try {
       localStorage.setItem("dime-palette", id);
     } catch {}
-    window.dispatchEvent(new Event(EVENT));
   }
   return [palette, set] as const;
 }

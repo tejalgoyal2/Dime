@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { Command } from "cmdk";
+import { LEAVE } from "@/lib/motion";
 import { format, parseISO } from "date-fns";
 import { createClient } from "@/lib/supabase/client";
 import { useExpenses } from "@/components/providers/expenses-provider";
@@ -114,15 +115,15 @@ export function CommandMenu({
             className="absolute inset-0 bg-[#0d0d0f]/30 dark:bg-black/60"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.15 }}
+            exit={{ opacity: 0, transition: LEAVE }}
+            transition={{ duration: 0.18 }}
             onClick={close}
           />
           <motion.div
             initial={{ opacity: 0, scale: 0.97, y: -8 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.98 }}
-            transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+            exit={{ opacity: 0, scale: 0.97, y: -4, transition: LEAVE }}
+            transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
             className="relative w-[min(620px,calc(100%-32px))] overflow-hidden rounded-[14px] bg-paper shadow-lift"
           >
             <Command label="Dime command menu" shouldFilter={false} loop onKeyDown={(e) => e.key === "Escape" && close()}>

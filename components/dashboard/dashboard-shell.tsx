@@ -102,9 +102,9 @@ function Shell({ callsign, savedAnimal }: { callsign: string; savedAnimal: strin
                 onClick={() => setTray("menu")}
                 whileTap={{ scale: 0.92 }}
                 aria-label="Menu"
-                className="flex h-10 items-center gap-2 rounded-[8px] bg-panel pl-1 pr-4 text-[15px] font-semibold transition-colors hover:bg-line-strong"
+                className="flex h-10 items-center gap-2 rounded-[8px] bg-panel pl-2 pr-4 text-[15px] font-semibold transition-colors hover:bg-line-strong"
               >
-                <AnimalAvatar animal={animal} size={32} className="bg-paper" />
+                <AnimalAvatar animal={animal} size={30} />
                 {callsign}
               </motion.button>
             </div>

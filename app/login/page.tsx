@@ -6,13 +6,15 @@ import { emailForName } from "@/lib/callsign";
 import { StillBubble, StillTypingBubble } from "@/components/dime/still-bubble";
 import { Wordmark } from "@/components/ui/wordmark";
 import { CoinToggle } from "@/components/ui/coin-toggle";
+import { TranslateToggle } from "@/components/ui/translate";
 
 type Step = "hello" | "name" | "secret" | "invite" | "busy" | "done";
-type Msg = { id: number; from: "tejal" | "you"; text: string; tone?: "lego" };
+type Msg = { id: number; from: "tejal" | "you"; text: string; en?: string; tone?: "lego" };
+type Line = string | { text: string; en: string };
 
 const TAKEN = [
   (n: string) => `Bro, ${n} is already famous here. Try another one?`,
-  (n: string) => `Arey, ${n} pehle se hai. Kuch aur soch.`,
+  (n: string) => ({ text: `Arey, ${n} pehle se hai. Kuch aur soch.`, en: `Oh no, ${n} is already taken. Think of another one.` }),
   (n: string) => `My database only has budget for one ${n}. ${n}_pro_max?`,
 ];
 
@@ -51,6 +53,8 @@ export default function LoginPage() {
   const [invite, setInvite] = useState("");
   const [show, setShow] = useState(false);
   const [typing, setTyping] = useState(false);
+  // Which Hinglish messages you've flipped to English.
+  const [english, setEnglish] = useState<Set<number>>(() => new Set());
   const field = useRef<HTMLInputElement>(null);
   const scroller = useRef<HTMLDivElement>(null);
   const handle = name.trim();
@@ -113,11 +117,12 @@ export default function LoginPage() {
 
   const you = (text: string) => setMsgs((m) => [...m, { id: seq++, from: "you", text }]);
   // I "type" for a beat before each reply, like a person would.
-  function say(lines: string[], next?: Step, tone?: "lego") {
+  function say(lines: Line[], next?: Step, tone?: "lego") {
     setTyping(true);
-    lines.forEach((text, i) => {
+    lines.forEach((line, i) => {
+      const { text, en } = typeof line === "string" ? { text: line, en: undefined } : line;
       setTimeout(() => {
-        setMsgs((m) => [...m, { id: seq++, from: "tejal", text, tone }]);
+        setMsgs((m) => [...m, { id: seq++, from: "tejal", text, en, tone }]);
         if (i === lines.length - 1) {
           setTyping(false);
           if (next) setStep(next);
@@ -177,7 +182,7 @@ export default function LoginPage() {
     setStep("busy");
     setTyping(true);
     const email = emailForName(handle);
-    const fail = (text: string, back: Step) => {
+    const fail = (text: Line, back: Step) => {
       setTyping(false);
       say([text], back, "lego");
     };
@@ -231,6 +236,26 @@ export default function LoginPage() {
       }, 1700);
     } catch {
       fail("I can't reach my notebook rn. wifi okay?", mode === "new" ? "invite" : "secret");
+    }
+  }
+
+  // Picked the wrong door? Switch between signing in and joining any time.
+  function switchMode() {
+    const next = mode === "in" ? "new" : "in";
+    setMode(next);
+    setStep("busy");
+    setSecret("");
+    setInvite("");
+    you(next === "in" ? "wait, I already have an account" : "actually, I'm new");
+    if (!handle) {
+      say(next === "in" ? ["oh hey, welcome back. who dis?"] : ["ooh, fresh face 👀", "who dis? just a name. no email, no phone, no drama."], "name");
+    } else {
+      say(
+        next === "in"
+          ? [`${handle}! my bad. now the secret, i'm not looking 🙈`]
+          : [`${handle}, love that.`, "pick a secret, 6+ characters. fr tho, if you forget it i genuinely can't help. everything has its settlements."],
+        "secret"
+      );
     }
   }
 
@@ -308,11 +333,18 @@ export default function LoginPage() {
                   }
                 >
                   <StillBubble
-                    text={m.text}
+                    text={m.en && english.has(m.id) ? m.en : m.text}
                     from={m.from === "you" ? "you" : "dime"}
                     tone={m.tone}
                     className={m.from === "tejal" && !m.tone ? "!bg-oat !shadow-none" : "!shadow-none"}
                   />
+                  {m.en && (
+                    <TranslateToggle
+                      on={english.has(m.id)}
+                      onChange={(v) => setEnglish((s) => { const n = new Set(s); if (v) n.add(m.id); else n.delete(m.id); return n; })}
+                      className="mt-1"
+                    />
+                  )}
                 </div>
               ))}
               {typing && <StillTypingBubble className="bg-oat" />}
@@ -401,10 +433,19 @@ export default function LoginPage() {
                 )}
                 {(shown === "busy" || shown === "done") && <div className="h-12 w-full rounded-[10px] bg-oat" />}
             </div>
-            {step === "secret" && mode === "in" && (
-              <button type="button" onClick={back} className="mt-2 px-1 text-[13px] font-medium text-ink-3 hover:text-ink">
-                Not {handle}? Change name
-              </button>
+            {(step === "name" || step === "secret" || step === "invite") && (
+              <div className="mt-2 flex justify-between gap-3 px-1 text-[13px] font-medium text-ink-3">
+                {step === "secret" && mode === "in" ? (
+                  <button type="button" onClick={back} className="transition-colors hover:text-ink">
+                    Not {handle}? Change name
+                  </button>
+                ) : (
+                  <span />
+                )}
+                <button type="button" onClick={switchMode} className="transition-colors hover:text-ink">
+                  {mode === "in" ? "New here? Make an account" : "Have an account? Sign in"}
+                </button>
+              </div>
             )}
           </form>
         </div>
@@ -463,7 +504,9 @@ function SampleReceipt() {
           ))}
         </ul>
         <div className="mt-4 border-t border-dashed border-line-strong pt-3 text-[13px] text-ink-2">
-          &ldquo;Croissant for $7? Bhai, Paris mein ho kya?&rdquo;
+          <span title="“Croissant for $7? Bro, are you in Paris or something?”" className="cursor-help underline decoration-dotted decoration-line-strong underline-offset-4">
+            &ldquo;Croissant for $7? Bhai, Paris mein ho kya?&rdquo;
+          </span>
         </div>
         <p className="mt-3 text-center text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-3">No refunds</p>
       </div>

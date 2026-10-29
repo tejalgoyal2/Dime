@@ -2,11 +2,13 @@
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { EASE_OUT, LEAVE_QUICK } from "@/lib/motion";
 import { differenceInCalendarDays, format, parseISO } from "date-fns";
 import { useExpenses } from "@/components/providers/expenses-provider";
 import { useToast } from "@/components/providers/toast-provider";
 import { Bubble, Speaker, TypingBubble } from "@/components/dime/bubble";
 import { CashBill } from "@/components/ui/cash-bill";
+import { TranslateToggle } from "@/components/ui/translate";
 import { BIG_SPEND, isSixSeven, pickAmount } from "@/lib/amounts";
 import { Money, money } from "@/components/ui/money";
 import { LOCAL_DATE_HEADER, localISODate } from "@/lib/dates";
@@ -20,7 +22,7 @@ const PLACEHOLDERS = ["coffee & croissant 7", "uber home 18", "groceries at fres
 
 const noop = () => () => {};
 
-type Reply = { you: string; items: ExpenseRow[]; text: string; tone?: "lego"; egg?: boolean } | null;
+type Reply = { you: string; items: ExpenseRow[]; text: string; en?: string; tone?: "lego"; egg?: boolean } | null;
 
 function greeting(hour: number, name: string) {
   if (hour < 0) return `Hey ${name}! What did we buy?`;
@@ -49,6 +51,8 @@ export function Counter({ callsign, arranging, onLogged }: { callsign: string; a
   const [editingBudget, setEditingBudget] = useState(false);
   // Which number is the price, when you typed more than one.
   const [chosen, setChosen] = useState<number | null>(null);
+  // Show the English version of my Hinglish reply.
+  const [english, setEnglish] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const mirrorRef = useRef<HTMLDivElement>(null);
   const hour = useSyncExternalStore(noop, () => new Date().getHours(), () => -1);
@@ -84,7 +88,7 @@ export function Counter({ callsign, arranging, onLogged }: { callsign: string; a
   if (arranging) {
     line = "Redecorating? Go wild. Drag any card by any part of it, I'll keep everything safe.";
   } else if (reply && !input) {
-    line = reply.text;
+    line = english && reply.en ? reply.en : reply.text;
   } else if (focused && pasted && input) {
     line = "Ooh, a bank text. I'll pull the shop and the amount out of it, don't worry.";
   } else if (focused && price.ambiguous) {
@@ -131,8 +135,10 @@ export function Counter({ callsign, arranging, onLogged }: { callsign: string; a
       const parsed = (await parseRes.json()) as ParsedExpense[];
       const valid = parsed.filter((p) => p.is_expense);
       const comment = parsed[0]?.funny_comment || "";
+      const en = parsed[0]?.comment_en || undefined;
+      setEnglish(false);
       if (!valid.length) {
-        setReply({ you: text, items: [], text: comment || "I didn't catch a price in that. How much was it?" });
+        setReply({ you: text, items: [], text: comment || "I didn't catch a price in that. How much was it?", en: comment ? en : undefined });
         return;
       }
       const saveRes = await fetch("/api/expenses", {
@@ -152,7 +158,7 @@ export function Counter({ callsign, arranging, onLogged }: { callsign: string; a
       setInput("");
       setChosen(null);
       const egg = saved.some((x) => isSixSeven(x.amount));
-      setReply({ you: text, items: saved, text: egg ? "SIX SEVENNN 🤷 okay okay, logged." : comment || "Noted.", egg });
+      setReply({ you: text, items: saved, text: egg ? "SIX SEVENNN 🤷 okay okay, logged." : comment || "Noted.", en: egg || !comment ? undefined : en, egg });
     } catch (err) {
       setReply({ you: text, items: [], text: err instanceof Error ? err.message : "Something broke on my side.", tone: "lego" });
       toast(err instanceof Error ? err.message : "Something broke", "error");
@@ -210,7 +216,7 @@ export function Counter({ callsign, arranging, onLogged }: { callsign: string; a
             <Speaker />
             <AnimatePresence initial={false} mode="popLayout">
               {reply && !input && !busy && (
-                <motion.div key={"you" + reply.you} layout exit={{ opacity: 0, transition: { duration: 0.15 } }}>
+                <motion.div key={"you" + reply.you} layout exit={{ opacity: 0, y: -4, transition: LEAVE_QUICK }}>
                   <Bubble from="you" text={reply.you} />
                 </motion.div>
               )}
@@ -226,7 +232,7 @@ export function Counter({ callsign, arranging, onLogged }: { callsign: string; a
                       {reply.items.map((x) => (
                         <span key={x.id} className="inline-flex items-center gap-2.5 rounded-[8px] bg-oat py-1.5 pl-2.5 pr-3 text-[14px]">
                           <TypeCoin type={x.type} onFlip={() => flip(x)} label />
-                          {x.amount >= BIG_SPEND && <CashBill size={22} burst />}
+                          {x.amount >= BIG_SPEND && <CashBill size={24} burst live />}
                           <span className="font-medium">{x.item_name}</span>
                           <span className="font-semibold">{money(x.amount)}</span>
                         </span>
@@ -234,6 +240,12 @@ export function Counter({ callsign, arranging, onLogged }: { callsign: string; a
                       <button onClick={undo} className="rounded-[8px] px-2.5 py-1.5 text-[14px] font-semibold text-ink-2 hover:bg-oat hover:text-ink">
                         Undo
                       </button>
+                      {reply.en && <TranslateToggle on={english} onChange={setEnglish} className="ml-auto" />}
+                    </div>
+                  )}
+                  {reply && !input && !busy && reply.items.length === 0 && reply.en && (
+                    <div className="mt-2 flex">
+                      <TranslateToggle on={english} onChange={setEnglish} className="-ml-2" />
                     </div>
                   )}
                 </Bubble>
@@ -296,8 +308,8 @@ export function Counter({ callsign, arranging, onLogged }: { callsign: string; a
                   key="price"
                   initial={{ opacity: 0, x: 8 }}
                   animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 8 }}
-                  transition={{ duration: 0.18 }}
+                  exit={{ opacity: 0, x: 8, transition: LEAVE_QUICK }}
+                  transition={{ duration: 0.22, ease: EASE_OUT }}
                   className="absolute right-[64px] top-1/2 flex -translate-y-1/2 items-center gap-1.5 text-[14px] font-semibold"
                 >
                   {other && (

@@ -1,12 +1,12 @@
 // The cells under the counter. Each user can reorder, resize or hide them.
 
-export const CELL_TYPES = ["trends", "receipt", "seesaw", "punch", "year", "take", "categories", "subs", "weekday", "hits", "clock", "sparks"] as const;
+export const CELL_TYPES = ["trends", "receipt", "seesaw", "punch", "year", "take", "categories", "subs", "weekday", "hits", "clock", "sparks", "checkup"] as const;
 export type CellType = (typeof CELL_TYPES)[number];
 
 // Widths on a 12-column grid.
-export const SIZES = ["s", "m", "l"] as const;
+export const SIZES = ["s", "m", "l", "xl"] as const;
 export type Size = (typeof SIZES)[number];
-export const SPAN: Record<Size, number> = { s: 4, m: 6, l: 8 };
+export const SPAN: Record<Size, number> = { s: 4, m: 6, l: 8, xl: 12 };
 
 export type Cell = { id: CellType; size: Size; hidden?: boolean };
 export type Layout = Cell[];
@@ -24,6 +24,7 @@ export const CELL_INFO: Record<CellType, { title: string; blurb: string; sizes: 
   hits: { title: "Biggest hits", blurb: "The five biggest buys this month", sizes: ["s", "m"] },
   clock: { title: "When you spend", blurb: "Your spending by hour of the day", sizes: ["s", "m"] },
   sparks: { title: "Categories over time", blurb: "Each category across six months", sizes: ["s", "m"] },
+  checkup: { title: "Money check-up", blurb: "Your vitals, plus advice when you ask", sizes: ["xl", "l"] },
 };
 
 export const DEFAULT_LAYOUT: Layout = [
@@ -39,6 +40,7 @@ export const DEFAULT_LAYOUT: Layout = [
   { id: "hits", size: "s" },
   { id: "clock", size: "s" },
   { id: "sparks", size: "s" },
+  { id: "checkup", size: "xl" },
 ];
 
 // Anything read from storage or the server is untrusted: keep known cells
@@ -57,6 +59,8 @@ export function sanitizeLayout(input: unknown): Layout | null {
     out.push({ id: cell, size: sizes.includes(size as Size) ? (size as Size) : sizes[0], ...(hidden === true ? { hidden: true } : {}) });
   }
   if (!out.length) return null;
-  for (const d of DEFAULT_LAYOUT) if (!seen.has(d.id)) out.push({ ...d, hidden: true });
+  // New cards (ones this layout has never seen) show up at the end. Cards
+  // you hid are in the layout with hidden: true, so they stay hidden.
+  for (const d of DEFAULT_LAYOUT) if (!seen.has(d.id)) out.push({ ...d });
   return out;
 }

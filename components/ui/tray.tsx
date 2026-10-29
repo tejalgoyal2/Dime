@@ -3,6 +3,7 @@
 import { useEffect, useRef, useSyncExternalStore } from "react";
 import { AnimatePresence, motion, useDragControls } from "framer-motion";
 import { X } from "lucide-react";
+import { EASE_SMOOTH, LEAVE } from "@/lib/motion";
 
 export const spring = { type: "spring", stiffness: 420, damping: 34, mass: 0.9 } as const;
 
@@ -17,12 +18,12 @@ const subscribeWide = (cb: () => void) => {
 const SHEET = {
   initial: { y: "100%" },
   animate: { y: 0, transition: { type: "spring", stiffness: 380, damping: 38, mass: 0.9 } },
-  exit: { y: "100%", transition: { duration: 0.24, ease: [0.4, 0, 1, 1] } },
+  exit: { y: "100%", transition: { duration: 0.34, ease: EASE_SMOOTH } },
 } as const;
 const CARD = {
   initial: { opacity: 0, y: 14, scale: 0.97 },
   animate: { opacity: 1, y: 0, scale: 1, transition: { type: "spring", stiffness: 420, damping: 36 } },
-  exit: { opacity: 0, y: 8, scale: 0.98, transition: { duration: 0.16, ease: [0.4, 0, 1, 1] } },
+  exit: { opacity: 0, y: 10, scale: 0.97, transition: LEAVE },
 } as const;
 
 interface TrayProps {
@@ -68,7 +69,7 @@ export function Tray({ open, onClose, title, icon, children, tone = "default" }:
             className="absolute inset-0 bg-[#2b2215]/30 dark:bg-black/60"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1, transition: { duration: 0.2 } }}
-            exit={{ opacity: 0, transition: { duration: 0.18 } }}
+            exit={{ opacity: 0, transition: LEAVE }}
             onClick={onClose}
           />
           <motion.div

@@ -20,6 +20,7 @@ export const parsedExpenseSchema = z.object({
   date: z.string(),
   emoji: z.string(),
   funny_comment: z.string(),
+  comment_en: z.string().optional(),
 });
 
 export const deleteExpenseSchema = z.object({

@@ -41,7 +41,9 @@ It's the rewrite of [WalletRIP](https://github.com/tejalgoyal2/WalletRIP), my fi
 - *The year*: a GitHub-style heatmap of your spending
 - *Biggest hits*, *When you spend* (night-you is expensive), *Categories over time*, *Subscriptions*, *Weekdays*
 
-**Read my month / Roast me.** One gives you an honest summary and one thing to try. The other gives you a performance review you didn't ask for.
+**Read my month / Roast me.** One gives you an honest summary and one thing to try. The other gives you a performance review you didn't ask for. Don't speak Hinglish? Every roast has a **Translate** button.
+
+**Money check-up.** A big card at the bottom with your vitals (this month's pace, how much is Lego, what's on repeat, what's creeping up, how much happens after 9pm), and three concrete moves for next month when you ask. I'm a friend with a spreadsheet, not a financial advisor, and the card says so.
 
 **Search everything.** Hit ⌘K (Ctrl K on Windows) and type `coffee`. It tells you how many coffees you've bought and what they cost. You can also log from there.
 
@@ -87,7 +89,7 @@ That's the whole API. Plain text or `{"text": "..."}` both work. Bank alerts wor
 
 The browser never writes to the database. Everything goes through API routes that check who you are, validate the input, and rate-limit you.
 
-**Routes:** `/api/expenses`, `/api/parse`, `/api/insights`, `/api/roast`, `/api/analyze-subs`, `/api/signup`, `/api/ingest`, `/api/quick-add`, `/api/tokens`, `/api/preferences`, `/api/profile`
+**Routes:** `/api/expenses`, `/api/parse`, `/api/insights`, `/api/roast`, `/api/advice`, `/api/analyze-subs`, `/api/signup`, `/api/ingest`, `/api/quick-add`, `/api/tokens`, `/api/preferences`, `/api/profile`
 
 ```
 app/
@@ -100,6 +102,7 @@ components/
 lib/
   ingest.ts       the auto-log pipeline
   life-lego.ts    how Life vs Lego gets decided, and remembered
+  checkup.ts      the money check-up's vitals
   gemini.ts       every AI call goes through here
   amounts.ts      finding the price in what you typed
   rate-limit.ts   all the limits in one place
@@ -152,7 +155,7 @@ Pushing to `main` deploys to Cloudflare through GitHub Actions. A second workflo
 
 ## Thanks
 
-- Animal faces: [Fluent Emoji](https://github.com/microsoft/fluentui-emoji) by Microsoft (MIT)
+- Animal faces: [Fluent Emoji 3D](https://github.com/microsoft/fluentui-emoji) by Microsoft (MIT)
 - Type: [Chillax](https://www.fontshare.com/fonts/chillax) by Indian Type Foundry
 
 ---

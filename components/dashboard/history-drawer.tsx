@@ -1,6 +1,8 @@
 "use client";
 
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
+import { CashBill } from "@/components/ui/cash-bill";
+import { BIG_SPEND } from "@/lib/amounts";
 import { AnimatePresence, motion } from "framer-motion";
 import { format, parseISO } from "date-fns";
 import { useExpenses } from "@/components/providers/expenses-provider";
@@ -168,6 +170,7 @@ function Panel({ initial, onClose, onEdit }: { initial: string; onClose: () => v
                       {e.item_name}
                       <span className="ml-2 text-[12px] font-medium text-ink-3">{e.category}</span>
                     </button>
+                    {e.amount >= BIG_SPEND && <CashBill size={20} />}
                     <span className="text-[15px] font-semibold">{money(e.amount)}</span>
                   </li>
                 ))}

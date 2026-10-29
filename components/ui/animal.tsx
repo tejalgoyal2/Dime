@@ -1,6 +1,6 @@
 // Everyone gets a little animal. It's picked from your name so it's the same
 // on every device, and you can swap it in the menu. Faces are Microsoft's
-// Fluent Emoji (MIT), served as static files, so they cost nothing to render.
+// Fluent Emoji in 3D (MIT), trimmed to 128px WebP (about 5 KB each).
 
 export const ANIMALS = ["fox", "cat", "panda", "frog", "koala", "tiger", "rabbit", "bear", "hamster", "dog", "lion", "monkey", "pig", "penguin", "owl", "mouse"] as const;
 export type Animal = (typeof ANIMALS)[number];
@@ -12,14 +12,18 @@ export function animalFor(name: string, chosen?: string | null): Animal {
   return ANIMALS[h % ANIMALS.length];
 }
 
+/** Just the animal, full size: no circle behind it. It tilts hello on hover. */
 export function AnimalAvatar({ animal, size = 32, className = "" }: { animal: Animal; size?: number; className?: string }) {
   return (
-    <span
-      className={`inline-flex shrink-0 items-center justify-center rounded-full bg-oat ${className}`}
-      style={{ width: size, height: size }}
-    >
-      {/* eslint-disable-next-line @next/next/no-img-element -- tiny static SVGs, no optimisation needed */}
-      <img src={`/animals/${animal}.svg`} alt="" width={size * 0.72} height={size * 0.72} draggable={false} decoding="async" />
-    </span>
+    // eslint-disable-next-line @next/next/no-img-element -- tiny static images, no optimisation needed
+    <img
+      src={`/animals/${animal}.webp`}
+      alt=""
+      width={size}
+      height={size}
+      draggable={false}
+      decoding="async"
+      className={`animal shrink-0 select-none ${className}`}
+    />
   );
 }

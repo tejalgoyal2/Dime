@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronRight, ClipboardPaste, Download, LogOut, Target, Zap } from "lucide-react";
 import { Pills } from "@/components/ui/pills";
+import { GlideOutline } from "@/components/ui/glide";
 import { ANIMALS, AnimalAvatar, type Animal } from "@/components/ui/animal";
 import { createClient } from "@/lib/supabase/client";
 import { useExpenses } from "@/components/providers/expenses-provider";
@@ -67,6 +68,8 @@ export function MenuTray({
   const [budget, setBudget] = useBudget();
   const [editingBudget, setEditingBudget] = useState(false);
   const [palette, setPalette] = usePalette();
+  const swatches = useRef<HTMLDivElement>(null);
+  const zoo = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
   async function signOut() {
@@ -76,23 +79,22 @@ export function MenuTray({
   }
 
   return (
-    <Tray open={open} onClose={onClose} title={callsign} icon={<AnimalAvatar animal={animal} size={34} className="bg-sunken" />}>
+    <Tray open={open} onClose={onClose} title={callsign} icon={<AnimalAvatar animal={animal} size={36} />}>
       <div className="space-y-4">
         <div className="rounded-[10px] bg-sunken px-4 py-3">
           <p className="text-[15px] font-medium">Your animal</p>
-          <div className="mt-2 grid grid-cols-8 gap-1.5">
+          <div ref={zoo} className="relative mt-2 grid grid-cols-8 gap-1">
+            <GlideOutline container={zoo} active={animal} className="rounded-[12px] bg-paper shadow-paper ring-2 ring-ink" />
             {ANIMALS.map((a) => (
               <button
                 key={a}
                 onClick={() => onAnimal(a)}
                 aria-label={a}
                 aria-pressed={animal === a}
-                className={`flex aspect-square items-center justify-center rounded-[10px] transition-[transform,background-color] duration-150 active:scale-90 ${
-                  animal === a ? "bg-paper shadow-paper ring-2 ring-ink" : "hover:bg-paper"
-                }`}
+                data-active={animal === a}
+                className="relative z-[3] flex aspect-square items-center justify-center rounded-[12px] transition-transform duration-200 hover:scale-110 active:scale-95"
               >
-                {/* eslint-disable-next-line @next/next/no-img-element -- tiny static SVGs */}
-                <img src={`/animals/${a}.svg`} alt="" width={24} height={24} draggable={false} loading="lazy" />
+                <AnimalAvatar animal={a} size={34} className={animal === a ? "" : "opacity-80 transition-opacity hover:opacity-100"} />
               </button>
             ))}
           </div>
@@ -146,13 +148,15 @@ export function MenuTray({
           />
           <li className="border-b border-line px-4 py-3">
             <p className="text-[15px] font-medium">Colours</p>
-            <div className="mt-2.5 grid grid-cols-3 gap-2">
+            <div ref={swatches} className="relative mt-2.5 grid grid-cols-3 gap-2">
+              <GlideOutline container={swatches} active={palette} className="rounded-[10px] ring-2 ring-ink" />
               {PALETTES.map((p) => (
                 <button
                   key={p.id}
                   onClick={() => setPalette(p.id)}
                   aria-pressed={palette === p.id}
-                  className={`overflow-hidden rounded-[10px] text-left ring-2 transition-shadow ${palette === p.id ? "ring-ink" : "ring-transparent hover:ring-line-strong"}`}
+                  data-active={palette === p.id}
+                  className="overflow-hidden rounded-[10px] text-left ring-2 ring-transparent transition-shadow duration-200 hover:ring-line-strong"
                 >
                   {/* Each swatch shows the palette as it looks right now, day or night. */}
                   <span className="flex gap-1 p-2.5" style={{ background: p[theme === "dark" ? "night" : "day"].bg }}>

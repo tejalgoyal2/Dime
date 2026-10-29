@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { checkAiBudget, checkRateLimit, getRequestIp } from "@/lib/rate-limit";
 import { isValidOrigin } from "@/lib/origin-check";
 import { apiError } from "@/lib/api-error";
-import { ask, plain } from "@/lib/gemini";
+import { ask, parseJson, plain } from "@/lib/gemini";
 
 export async function POST(request: NextRequest) {
   try {
@@ -64,11 +64,22 @@ CONTEXT: The user is in Canada. All amounts are in Canadian Dollars (CAD). Never
 Write a short, sarcastic, funny roast of this month in Hinglish (Indian/English mix), like a friend's brutally honest "performance review".
 Roast the user for their bad financial decisions, specifically pointing out 'Wants' or high amounts.
 Keep it under 60 words. Be brutal but funny, never mean about who they are.
-Plain text only: no markdown, no asterisks, no title or heading, no quotation marks around it.`;
+Plain text only: no markdown, no asterisks, no title or heading, no quotation marks around it.
 
-    const roast = plain(await ask(apiKey, prompt));
+Reply with ONLY a JSON object: {"hinglish": "<the roast>", "english": "<the same roast in natural, casual English, same jokes>"}`;
 
-    return NextResponse.json({ roast });
+    const raw = await ask(apiKey, prompt, { json: true });
+    let roast: string;
+    let english: string | null = null;
+    try {
+      const data = parseJson(raw) as { hinglish?: string; english?: string };
+      roast = plain(String(data.hinglish ?? ""));
+      english = data.english ? plain(String(data.english)) : null;
+    } catch {
+      roast = plain(raw);
+    }
+
+    return NextResponse.json({ roast, english });
   } catch (error: unknown) {
     console.error(error);
     return apiError("Something went wrong", "INTERNAL_ERROR", 500);

@@ -7,6 +7,8 @@ import { useExpenses } from "@/components/providers/expenses-provider";
 import { useToast } from "@/components/providers/toast-provider";
 import { Tray } from "@/components/ui/tray";
 import { Button } from "@/components/ui/button";
+import { Pills } from "@/components/ui/pills";
+import { Calendar, DateField, useDatePicker } from "@/components/ui/date-picker";
 import type { ExpenseRow } from "@/lib/supabase/types";
 
 export function ExpenseSheet({ expense, onClose }: { expense: ExpenseRow | null; onClose: () => void }) {
@@ -22,6 +24,7 @@ function SheetBody({ expense, onClose }: { expense: ExpenseRow; onClose: () => v
   const { toast } = useToast();
   const [type, setType] = useState(expense.type);
   const [saving, setSaving] = useState(false);
+  const date = useDatePicker(expense.date);
 
   async function save(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -60,33 +63,34 @@ function SheetBody({ expense, onClose }: { expense: ExpenseRow; onClose: () => v
         </div>
       </div>
 
-      <div role="radiogroup" aria-label="Type" className="grid grid-cols-2 gap-1 rounded-[10px] bg-sunken p-1">
-        {(["Need", "Want"] as const).map((t) => (
-          <button
-            key={t}
-            type="button"
-            role="radio"
-            aria-checked={type === t}
-            onClick={() => setType(t)}
-            className={`rounded-[8px] py-2 text-[14px] font-medium transition-all ${
-              type === t ? (t === "Want" ? "bg-lego text-white" : "bg-life text-white") : "text-ink-2"
-            }`}
-          >
-            {t === "Need" ? "Life (needed it)" : "Lego (wanted it)"}
-          </button>
-        ))}
-      </div>
+      <Pills
+        role="radiogroup"
+        label="Type"
+        value={type}
+        onChange={setType}
+        options={[
+          { value: "Need", label: "Life (needed it)" },
+          { value: "Want", label: "Lego (wanted it)" },
+        ]}
+        className="rounded-[10px] bg-sunken p-1"
+        buttonClassName="flex-1 rounded-[8px] py-2 text-[14px] font-medium"
+        markerClassName=""
+        markerStyle={{ background: type === "Want" ? "var(--lego)" : "var(--life)" }}
+        activeClassName="text-white"
+        idleClassName="text-ink-2 hover:text-ink"
+      />
 
       <div className="grid grid-cols-2 gap-3">
         <label className="space-y-1">
           <span className="pl-1 text-[12px] font-medium text-ink-3">Category</span>
           <input name="category" defaultValue={expense.category} required maxLength={50} className={field} />
         </label>
-        <label className="space-y-1">
+        <div className="space-y-1">
           <span className="pl-1 text-[12px] font-medium text-ink-3">Date</span>
-          <input name="date" type="date" defaultValue={expense.date} required className={field} />
-        </label>
+          <DateField name="date" picker={date} />
+        </div>
       </div>
+      <Calendar picker={date} />
 
       <div className="flex gap-2 pt-2">
         <Button type="button" variant="secondary" size="lg" onClick={remove} aria-label="Delete" className="w-12 !px-0 text-danger">

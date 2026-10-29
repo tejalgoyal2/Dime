@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { CashBill } from "@/components/ui/cash-bill";
+import { BIG_SPEND } from "@/lib/amounts";
 import { AnimatePresence, motion } from "framer-motion";
 import { format, parseISO } from "date-fns";
 import { useExpenses } from "@/components/providers/expenses-provider";
@@ -125,7 +127,7 @@ function Line({ e }: { e: ExpenseRow }) {
       layout="position"
       initial={isFresh ? { opacity: 0, height: 0, y: -14 } : false}
       animate={{ opacity: 1, height: "auto", y: 0 }}
-      exit={{ opacity: 0, height: 0, transition: { duration: 0.22 } }}
+      exit={{ opacity: 0, height: 0, transition: { opacity: { duration: 0.2 }, height: { duration: 0.32, ease: [0.4, 0, 0.2, 1] } } }}
       transition={{ type: "spring", stiffness: 300, damping: 30 }}
       className="relative"
     >
@@ -143,6 +145,7 @@ function Line({ e }: { e: ExpenseRow }) {
           {e.item_name}
         </button>
         <span className="leader" />
+        {e.amount >= BIG_SPEND && <CashBill size={18} className="mr-1.5 self-center" />}
         <span className="font-semibold">{e.amount.toFixed(2)}</span>
         <button
           onClick={remove}

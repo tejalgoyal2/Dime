@@ -26,6 +26,7 @@ import { TakeCell } from "./cells/take";
 import { YearCell } from "./cells/year";
 import { ClockCell, HitsCell, SparksCell } from "./cells/more";
 import { CategoriesCell, SubsCell, WeekdayCell } from "./cells/lists";
+import { CheckupCell } from "./cells/checkup";
 
 const RENDER: Record<CellType, () => React.ReactNode> = {
   trends: () => <TrendsCell />,
@@ -40,10 +41,11 @@ const RENDER: Record<CellType, () => React.ReactNode> = {
   hits: () => <HitsCell />,
   clock: () => <ClockCell />,
   sparks: () => <SparksCell />,
+  checkup: () => <CheckupCell />,
 };
 
-const SPAN_CLASS: Record<Size, string> = { s: "col-span-12 md:col-span-6 xl:col-span-4", m: "col-span-12 xl:col-span-6", l: "col-span-12 xl:col-span-8" };
-const SIZE_LABEL: Record<Size, string> = { s: "⅓", m: "½", l: "⅔" };
+const SPAN_CLASS: Record<Size, string> = { s: "col-span-12 md:col-span-6 xl:col-span-4", m: "col-span-12 xl:col-span-6", l: "col-span-12 xl:col-span-8", xl: "col-span-12" };
+const SIZE_LABEL: Record<Size, string> = { s: "⅓", m: "½", l: "⅔", xl: "Full" };
 const glide = { type: "spring", stiffness: 300, damping: 32, mass: 0.9 } as const;
 
 // Prefer whatever the pointer is actually over; fall back to the nearest cell.
@@ -103,7 +105,7 @@ export function CellGrid({ layout, setLayout, arranging }: { layout: Layout; set
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
+            exit={{ opacity: 0, height: 0, transition: { opacity: { duration: 0.2 }, height: { duration: 0.32, ease: [0.4, 0, 0.2, 1] } } }}
             transition={glide}
             className="overflow-hidden"
           >
@@ -187,7 +189,7 @@ function Slot({
       layoutId={`cell-${cell.id}`}
       initial={{ opacity: 0, scale: 0.96 }}
       animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.94 }}
+      exit={{ opacity: 0, scale: 0.94, transition: { duration: 0.28, ease: [0.4, 0, 0.2, 1] } }}
       transition={glide}
       className={`relative ${SPAN_CLASS[cell.size]} ${info.tall ? "xl:row-span-2" : ""} ${arranging ? "cursor-grab touch-none active:cursor-grabbing" : ""}`}
       {...(arranging ? { ...attributes, ...listeners } : {})}
@@ -204,7 +206,7 @@ function Slot({
           <motion.div
             initial={{ opacity: 0, y: -6 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6 }}
+            exit={{ opacity: 0, y: -6, transition: { duration: 0.22, ease: [0.4, 0, 0.2, 1] } }}
             transition={{ duration: 0.18 }}
             className="absolute inset-0 rounded-[14px] ring-[2.5px] ring-ink/70 ring-offset-0"
           >
