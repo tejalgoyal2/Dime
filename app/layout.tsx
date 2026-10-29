@@ -14,7 +14,7 @@ const chillax = localFont({
 
 export const metadata: Metadata = {
   title: "Dime",
-  description: "An expense tracker that listens, sorts Life from Lego, and roasts you a little.",
+  description: "Text it what you spent. It sorts Life from Lego, keeps the receipt, and roasts you a little.",
   metadataBase: new URL("https://dime.tgoyal.me"),
   openGraph: {
     title: "Dime",

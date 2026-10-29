@@ -114,8 +114,10 @@ function Line({ e }: { e: ExpenseRow }) {
   }
 
   async function flip() {
-    const ok = await updateExpense(e.id, { type: e.type === "Want" ? "Need" : "Want" });
+    const type = e.type === "Want" ? "Need" : "Want";
+    const ok = await updateExpense(e.id, { type });
     if (!ok) toast("Couldn't change that one", "error");
+    else toast(`Got it. ${e.item_name} goes in ${type === "Want" ? "Lego" : "Life"} from now on.`);
   }
 
   return (

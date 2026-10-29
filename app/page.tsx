@@ -15,10 +15,7 @@ export default async function Home() {
     user.email?.split("@")[0] ??
     "anon";
 
-  const adminEmail = process.env.ADMIN_EMAIL;
-  const isAdmin =
-    !!adminEmail &&
-    user.email?.toLowerCase() === adminEmail.toLowerCase();
+  const animal = typeof user.user_metadata?.animal === "string" ? user.user_metadata.animal : null;
 
-  return <DashboardShell callsign={callsign} isAdmin={isAdmin} />;
+  return <DashboardShell callsign={callsign} animal={animal} />;
 }

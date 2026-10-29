@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useRef, useState, useSyncExternalStore } from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { ExpensesProvider, useExpenses } from "@/components/providers/expenses-provider";
 import { Wordmark } from "@/components/ui/wordmark";
+import { AnimalAvatar, animalFor, type Animal } from "@/components/ui/animal";
 import { CoinToggle } from "@/components/ui/coin-toggle";
 import { useLayout } from "@/lib/dashboard/use-layout";
 import type { ExpenseRow } from "@/lib/supabase/types";
@@ -17,20 +18,28 @@ import { AutologTray } from "./trays/autolog-tray";
 import { HistoryDrawer } from "./history-drawer";
 import { CommandMenu } from "./command-menu";
 
+const noop = () => () => {};
+
 interface DashboardShellProps {
   callsign: string;
-  isAdmin: boolean;
+  animal: string | null;
 }
 
-export function DashboardShell({ callsign }: DashboardShellProps) {
+export function DashboardShell({ callsign, animal }: DashboardShellProps) {
   return (
     <ExpensesProvider>
-      <Shell callsign={callsign} />
+      <Shell callsign={callsign} savedAnimal={animal} />
     </ExpensesProvider>
   );
 }
 
-function Shell({ callsign }: { callsign: string }) {
+function Shell({ callsign, savedAnimal }: { callsign: string; savedAnimal: string | null }) {
+  const [animal, setAnimalState] = useState<Animal>(() => animalFor(callsign, savedAnimal));
+  const setAnimal = useCallback((a: Animal) => {
+    setAnimalState(a);
+    // Kept on your account so it follows you to every device.
+    void fetch("/api/profile", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ animal: a }) });
+  }, []);
   const { state } = useExpenses();
   const [layout, setLayout] = useLayout();
   const [arranging, setArranging] = useState(false);
@@ -42,6 +51,11 @@ function Shell({ callsign }: { callsign: string }) {
   const closeHistory = useCallback(() => setHistory((h) => ({ ...h, open: false })), []);
   const [fresh, setFresh] = useState<Set<string>>(() => new Set());
   const freshTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const shortcut = useSyncExternalStore(
+    noop,
+    () => (/Mac|iPhone|iPad/.test(navigator.platform) ? "⌘ K" : "Ctrl K"),
+    () => null
+  );
   const { scrollY } = useScroll();
   const rule = useTransform(scrollY, [0, 40], [0, 1]);
 
@@ -59,14 +73,18 @@ function Shell({ callsign }: { callsign: string }) {
             <Wordmark />
             <button
               onClick={() => setCmd(true)}
-              className="ml-10 flex h-10 w-[300px] items-center gap-3 rounded-[10px] bg-panel px-3.5 text-[14px] font-medium text-ink-3 transition-colors hover:text-ink-2"
+              className="group ml-10 flex h-11 w-[340px] items-center gap-3 rounded-[12px] bg-panel pl-4 pr-2 text-[15px] font-medium text-ink-3 shadow-edge transition-colors hover:text-ink-2"
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" className="shrink-0">
                 <circle cx="11" cy="11" r="7" />
                 <path d="m20 20-3.5-3.5" />
               </svg>
-              Search or do anything
-              <kbd className="ml-auto rounded-[6px] border border-line-strong px-1.5 text-[12px] font-semibold">⌘K</kbd>
+              <span className="truncate">Search your spending</span>
+              {shortcut && (
+                <kbd className="ml-auto rounded-[8px] bg-oat px-2 py-1 font-sans text-[12px] font-semibold text-ink-3 transition-colors group-hover:text-ink-2">
+                  {shortcut}
+                </kbd>
+              )}
             </button>
             <div className="ml-auto flex items-center gap-3">
               <motion.button
@@ -86,9 +104,7 @@ function Shell({ callsign }: { callsign: string }) {
                 aria-label="Menu"
                 className="flex h-10 items-center gap-2 rounded-[8px] bg-panel pl-1 pr-4 text-[15px] font-semibold transition-colors hover:bg-line-strong"
               >
-                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-ink text-[14px] font-semibold uppercase text-paper">
-                  {callsign.charAt(0)}
-                </span>
+                <AnimalAvatar animal={animal} size={32} className="bg-paper" />
                 {callsign}
               </motion.button>
             </div>
@@ -121,7 +137,7 @@ function Shell({ callsign }: { callsign: string }) {
         </footer>
       </div>
 
-      <MenuTray open={tray === "menu"} onClose={() => setTray(null)} onOpen={setTray} callsign={callsign} />
+      <MenuTray open={tray === "menu"} onClose={() => setTray(null)} onOpen={setTray} callsign={callsign} animal={animal} onAnimal={setAnimal} />
       <ImportTray open={tray === "import"} onClose={() => setTray(null)} />
       <AutologTray open={tray === "autolog"} onClose={() => setTray(null)} />
       <ExpenseSheet expense={editing} onClose={() => setEditing(null)} />

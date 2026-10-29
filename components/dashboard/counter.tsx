@@ -5,7 +5,9 @@ import { AnimatePresence, motion } from "framer-motion";
 import { differenceInCalendarDays, format, parseISO } from "date-fns";
 import { useExpenses } from "@/components/providers/expenses-provider";
 import { useToast } from "@/components/providers/toast-provider";
-import { Bubble, Speaker } from "@/components/dime/bubble";
+import { Bubble, Speaker, TypingBubble } from "@/components/dime/bubble";
+import { CashBill } from "@/components/ui/cash-bill";
+import { BIG_SPEND, isSixSeven, pickAmount } from "@/lib/amounts";
 import { Money, money } from "@/components/ui/money";
 import { LOCAL_DATE_HEADER, localISODate } from "@/lib/dates";
 import { monthSummary, punchStats, safeToSpend } from "@/lib/stats";
@@ -18,7 +20,7 @@ const PLACEHOLDERS = ["coffee & croissant 7", "uber home 18", "groceries at fres
 
 const noop = () => () => {};
 
-type Reply = { you: string; items: ExpenseRow[]; text: string; tone?: "lego" } | null;
+type Reply = { you: string; items: ExpenseRow[]; text: string; tone?: "lego"; egg?: boolean } | null;
 
 function greeting(hour: number, name: string) {
   if (hour < 0) return `Hey ${name}! What did we buy?`;
@@ -45,6 +47,8 @@ export function Counter({ callsign, arranging, onLogged }: { callsign: string; a
   const [ph, setPh] = useState(0);
   const [pasted, setPasted] = useState(false);
   const [editingBudget, setEditingBudget] = useState(false);
+  // Which number is the price, when you typed more than one.
+  const [chosen, setChosen] = useState<number | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const mirrorRef = useRef<HTMLDivElement>(null);
   const hour = useSyncExternalStore(noop, () => new Date().getHours(), () => -1);
@@ -72,22 +76,25 @@ export function Counter({ callsign, arranging, onLogged }: { callsign: string; a
   const punch = punchStats(state.expenses, goal ?? 3);
   const last = state.expenses[0]?.date;
   const gap = last ? differenceInCalendarDays(new Date(), parseISO(last)) : null;
-  const typedAmount = Number(input.match(/(\d+(?:\.\d+)?)(?!.*\d)/)?.[1] ?? 0);
+  const price = pickAmount(input, chosen);
+  const typedAmount = price.picked?.value ?? 0;
 
   // What Dime says and how he looks, most specific first.
   let line = greeting(hour, name);
-  if (busy) {
-    line = "Reading…";
-  } else if (arranging) {
+  if (arranging) {
     line = "Redecorating? Go wild. Drag any card by any part of it, I'll keep everything safe.";
   } else if (reply && !input) {
     line = reply.text;
   } else if (focused && pasted && input) {
     line = "Ooh, a bank text. I'll pull the shop and the amount out of it, don't worry.";
+  } else if (focused && price.ambiguous) {
+    line = `Two numbers in there. Is the price ${money(typedAmount)}? Tap the other one if not.`;
+  } else if (focused && isSixSeven(typedAmount)) {
+    line = "6… 7… 👀";
   } else if (focused && typedAmount >= 150) {
     line = `${money(typedAmount, 0)}?? Okay… go on.`;
   } else if (focused) {
-    line = input ? "Mm-hm. Hit enter when you're done." : "I'm listening. Type it like you'd text me.";
+    line = input ? "Mm-hm. Hit enter when you're done." : "Go on, what'd you get?";
   } else if (state.isLoading) {
     line = "One sec, opening your book…";
   } else if (state.expenses.length === 0) {
@@ -108,11 +115,15 @@ export function Counter({ callsign, arranging, onLogged }: { callsign: string; a
   async function send(raw: string) {
     const text = raw.trim();
     if (!text || busy) return;
+    const hint = pickAmount(text, chosen);
     setBusy(true);
     setReply(null);
     setPasted(false);
     try {
-      const parseRes = await fetch("/api/parse", { method: "POST", headers: { [LOCAL_DATE_HEADER]: localISODate() }, body: text });
+      const headers: Record<string, string> = { [LOCAL_DATE_HEADER]: localISODate() };
+      // When there was a choice to make, tell the server which number is the price.
+      if (hint.ambiguous && hint.picked) headers["x-dime-amount"] = String(hint.picked.value);
+      const parseRes = await fetch("/api/parse", { method: "POST", headers, body: text });
       if (!parseRes.ok) {
         const data = (await parseRes.json().catch(() => ({}))) as { error?: string };
         throw new Error(parseRes.status === 429 ? "Slow down a little. Try again in a minute." : data.error || "Couldn't read that");
@@ -139,7 +150,9 @@ export function Counter({ callsign, arranging, onLogged }: { callsign: string; a
       addExpenses(saved);
       onLogged(saved.map((x) => x.id));
       setInput("");
-      setReply({ you: text, items: saved, text: comment || "Noted." });
+      setChosen(null);
+      const egg = saved.some((x) => isSixSeven(x.amount));
+      setReply({ you: text, items: saved, text: egg ? "SIX SEVENNN 🤷 okay okay, logged." : comment || "Noted.", egg });
     } catch (err) {
       setReply({ you: text, items: [], text: err instanceof Error ? err.message : "Something broke on my side.", tone: "lego" });
       toast(err instanceof Error ? err.message : "Something broke", "error");
@@ -165,7 +178,8 @@ export function Counter({ callsign, arranging, onLogged }: { callsign: string; a
   }, []);
 
   // The amount you typed, picked out so it can be highlighted.
-  const amount = input.match(/^(.*?)(\$?\d+(?:[.,]\d{1,2})?)(\D*)$/);
+  const amount = price.picked;
+  const other = price.ambiguous ? price.pool.filter((t) => t.value !== amount?.value).at(-1) : undefined;
   const syncMirror = () => {
     if (mirrorRef.current && inputRef.current) mirrorRef.current.scrollLeft = inputRef.current.scrollLeft;
   };
@@ -174,6 +188,7 @@ export function Counter({ callsign, arranging, onLogged }: { callsign: string; a
     const type = item.type === "Need" ? "Want" : "Need";
     setReply((r) => r && { ...r, items: r.items.map((x) => (x.id === item.id ? { ...x, type } : x)) });
     if (!(await updateExpense(item.id, { type }))) toast("Couldn't change that", "error");
+    else toast(`Got it. ${item.item_name} goes in ${type === "Want" ? "Lego" : "Life"} from now on.`);
   }
 
   async function undo() {
@@ -192,20 +207,26 @@ export function Counter({ callsign, arranging, onLogged }: { callsign: string; a
       <div className="col-span-12 lg:col-span-7">
         <div className="max-w-[640px]">
           <div className="flex min-h-[132px] flex-col justify-end gap-2.5">
-            <Speaker note={busy ? "typing…" : undefined} />
+            <Speaker />
             <AnimatePresence initial={false} mode="popLayout">
               {reply && !input && !busy && (
                 <motion.div key={"you" + reply.you} layout exit={{ opacity: 0, transition: { duration: 0.15 } }}>
                   <Bubble from="you" text={reply.you} />
                 </motion.div>
               )}
-              <motion.div key="dime" layout>
+              {busy ? (
+                <motion.div key="typing" layout="position">
+                  <TypingBubble className="bg-paper shadow-paper" />
+                </motion.div>
+              ) : (
+              <motion.div key="dime" layout className={reply?.egg && !input ? "six-seven" : undefined}>
                 <Bubble text={line} tone={reply && !input && !busy ? reply.tone : undefined}>
                   {reply && !input && !busy && reply.items.length > 0 && (
                     <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-line pt-3">
                       {reply.items.map((x) => (
                         <span key={x.id} className="inline-flex items-center gap-2.5 rounded-[8px] bg-oat py-1.5 pl-2.5 pr-3 text-[14px]">
                           <TypeCoin type={x.type} onFlip={() => flip(x)} label />
+                          {x.amount >= BIG_SPEND && <CashBill size={22} burst />}
                           <span className="font-medium">{x.item_name}</span>
                           <span className="font-semibold">{money(x.amount)}</span>
                         </span>
@@ -217,6 +238,7 @@ export function Counter({ callsign, arranging, onLogged }: { callsign: string; a
                   )}
                 </Bubble>
               </motion.div>
+              )}
             </AnimatePresence>
           </div>
 
@@ -226,7 +248,10 @@ export function Counter({ callsign, arranging, onLogged }: { callsign: string; a
               value={input}
               onChange={(e) => {
                 setInput(e.target.value);
-                if (!e.target.value) setPasted(false);
+                if (!e.target.value) {
+                  setPasted(false);
+                  setChosen(null);
+                }
                 requestAnimationFrame(syncMirror);
               }}
               onPaste={(e) => {
@@ -241,7 +266,7 @@ export function Counter({ callsign, arranging, onLogged }: { callsign: string; a
               maxLength={2000}
               enterKeyHint="send"
               aria-label="What did you spend on?"
-              className={`relative h-16 w-full rounded-[10px] bg-paper pl-6 pr-[170px] text-[20px] font-medium shadow-paper caret-ink outline-none ring-2 ring-transparent transition-shadow focus:ring-ink ${
+              className={`relative h-16 w-full rounded-[10px] bg-paper pl-6 ${other ? "pr-[230px]" : "pr-[170px]"} text-[20px] font-medium shadow-paper caret-ink outline-none ring-2 ring-transparent transition-shadow focus:ring-ink ${
                 input ? "text-transparent" : "text-ink"
               }`}
             />
@@ -250,15 +275,15 @@ export function Counter({ callsign, arranging, onLogged }: { callsign: string; a
               <div
                 ref={mirrorRef}
                 aria-hidden
-                className="pointer-events-none absolute inset-y-0 left-0 right-[170px] flex items-center overflow-hidden whitespace-pre pl-6 text-[20px] font-medium text-ink"
+                className={`pointer-events-none absolute inset-y-0 left-0 ${other ? "right-[230px]" : "right-[170px]"} flex items-center overflow-hidden whitespace-pre pl-6 text-[20px] font-medium text-ink`}
               >
                 {amount ? (
                   <>
-                    {amount[1]}
+                    {input.slice(0, amount.start)}
                     <span className="rounded-[4px] bg-[color-mix(in_oklab,var(--lego)_16%,transparent)] text-lego [box-shadow:0_0_0_3px_color-mix(in_oklab,var(--lego)_16%,transparent)]">
-                      {amount[2]}
+                      {input.slice(amount.start, amount.end)}
                     </span>
-                    {amount[3]}
+                    {input.slice(amount.end)}
                   </>
                 ) : (
                   input
@@ -268,13 +293,25 @@ export function Counter({ callsign, arranging, onLogged }: { callsign: string; a
             <AnimatePresence>
               {amount && !busy && (
                 <motion.span
+                  key="price"
                   initial={{ opacity: 0, x: 8 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: 8 }}
                   transition={{ duration: 0.18 }}
-                  className="pointer-events-none absolute right-[68px] top-1/2 -translate-y-1/2 text-[14px] font-semibold text-ink-3"
+                  className="absolute right-[64px] top-1/2 flex -translate-y-1/2 items-center gap-1.5 text-[14px] font-semibold"
                 >
-                  {money(Number(amount[2].replace(/[$,]/g, (c) => (c === "," ? "." : ""))))}
+                  {other && (
+                    <button
+                      type="button"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => setChosen(other.value)}
+                      title="That one's the price"
+                      className="rounded-[8px] px-2 py-1 text-ink-3 line-through decoration-ink-3/50 transition-colors hover:bg-oat hover:text-ink hover:no-underline"
+                    >
+                      {money(other.value)}
+                    </button>
+                  )}
+                  <span className={`pointer-events-none ${other ? "rounded-[8px] bg-oat px-2 py-1 text-ink" : "text-ink-3"}`}>{money(amount.value)}</span>
                 </motion.span>
               )}
             </AnimatePresence>

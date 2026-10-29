@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronRight, ClipboardPaste, Download, LogOut, Target, Zap } from "lucide-react";
+import { Pills } from "@/components/ui/pills";
+import { ANIMALS, AnimalAvatar, type Animal } from "@/components/ui/animal";
 import { createClient } from "@/lib/supabase/client";
 import { useExpenses } from "@/components/providers/expenses-provider";
 import { useTheme } from "@/components/providers/theme-provider";
@@ -50,14 +52,18 @@ export function MenuTray({
   onClose,
   onOpen,
   callsign,
+  animal,
+  onAnimal,
 }: {
   open: boolean;
   onClose: () => void;
   onOpen: (t: TrayName) => void;
   callsign: string;
+  animal: Animal;
+  onAnimal: (a: Animal) => void;
 }) {
   const { state } = useExpenses();
-  const { mode, setMode } = useTheme();
+  const { mode, setMode, theme } = useTheme();
   const [budget, setBudget] = useBudget();
   const [editingBudget, setEditingBudget] = useState(false);
   const [palette, setPalette] = usePalette();
@@ -70,8 +76,28 @@ export function MenuTray({
   }
 
   return (
-    <Tray open={open} onClose={onClose} title={callsign}>
+    <Tray open={open} onClose={onClose} title={callsign} icon={<AnimalAvatar animal={animal} size={34} className="bg-sunken" />}>
       <div className="space-y-4">
+        <div className="rounded-[10px] bg-sunken px-4 py-3">
+          <p className="text-[15px] font-medium">Your animal</p>
+          <div className="mt-2 grid grid-cols-8 gap-1.5">
+            {ANIMALS.map((a) => (
+              <button
+                key={a}
+                onClick={() => onAnimal(a)}
+                aria-label={a}
+                aria-pressed={animal === a}
+                className={`flex aspect-square items-center justify-center rounded-[10px] transition-[transform,background-color] duration-150 active:scale-90 ${
+                  animal === a ? "bg-paper shadow-paper ring-2 ring-ink" : "hover:bg-paper"
+                }`}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element -- tiny static SVGs */}
+                <img src={`/animals/${a}.svg`} alt="" width={24} height={24} draggable={false} loading="lazy" />
+              </button>
+            ))}
+          </div>
+        </div>
+
         <ul className="overflow-hidden rounded-[10px] bg-sunken">
           <Row icon={<Zap size={18} />} label="Auto-log" detail="Let bank texts log themselves" onClick={() => onOpen("autolog")} />
           <Row icon={<ClipboardPaste size={18} />} label="Paste a bunch" detail="Statements, lists, whatever" onClick={() => onOpen("import")} />
@@ -128,12 +154,10 @@ export function MenuTray({
                   aria-pressed={palette === p.id}
                   className={`overflow-hidden rounded-[10px] text-left ring-2 transition-shadow ${palette === p.id ? "ring-ink" : "ring-transparent hover:ring-line-strong"}`}
                 >
-                  <span className="flex">
-                    <span className="flex flex-1 gap-1 p-2.5" style={{ background: p.bg }}>
-                      <span className="h-4 w-4 rounded-full" style={{ background: p.life }} />
-                      <span className="h-4 w-4 rounded-full" style={{ background: p.lego }} />
-                    </span>
-                    <span className="w-5" style={{ background: p.night }} />
+                  {/* Each swatch shows the palette as it looks right now, day or night. */}
+                  <span className="flex gap-1 p-2.5" style={{ background: p[theme === "dark" ? "night" : "day"].bg }}>
+                    <span className="h-4 w-4 rounded-full" style={{ background: p[theme === "dark" ? "night" : "day"].life }} />
+                    <span className="h-4 w-4 rounded-full" style={{ background: p[theme === "dark" ? "night" : "day"].lego }} />
                   </span>
                   <span className="block bg-paper px-2.5 py-1.5 text-[12px] font-semibold text-ink">{p.name}</span>
                 </button>
@@ -142,18 +166,18 @@ export function MenuTray({
           </li>
           <li className="border-b border-line px-4 py-3">
             <p className="text-[15px] font-medium">Day or night</p>
-            <div className="mt-2.5 grid grid-cols-3 gap-1 rounded-[10px] bg-oat p-1">
-              {(["light", "dark", "system"] as const).map((m) => (
-                <button
-                  key={m}
-                  onClick={() => setMode(m)}
-                  aria-pressed={mode === m}
-                  className={`h-8 rounded-[8px] text-[13px] font-semibold transition-colors ${mode === m ? "bg-ink text-paper" : "text-ink-2 hover:text-ink"}`}
-                >
-                  {m === "light" ? "Day" : m === "dark" ? "Night" : "Auto"}
-                </button>
-              ))}
-            </div>
+            <Pills
+              label="Day or night"
+              value={mode}
+              onChange={setMode}
+              options={[
+                { value: "light", label: "Day" },
+                { value: "dark", label: "Night" },
+                { value: "system", label: "Auto" },
+              ]}
+              className="mt-2.5 rounded-[10px] bg-oat p-1"
+              buttonClassName="h-8 flex-1 rounded-[8px] text-[13px] font-semibold"
+            />
           </li>
         </ul>
 

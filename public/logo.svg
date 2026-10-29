@@ -1,5 +1,8 @@
-<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <!-- Abstract geometric prism: two overlapping diamond shapes -->
-  <path d="M16 4 L26 16 L16 28 L6 16 Z" stroke="#00ff88" stroke-width="2" stroke-linejoin="round" fill="none"/>
-  <path d="M16 9 L22 16 L16 23 L10 16 Z" fill="#00ff88" fill-opacity="0.2" stroke="#00ff88" stroke-width="1" stroke-linejoin="round"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="118" fill="#18181a"/>
+  <g transform="translate(18 -4)">
+    <circle cx="232" cy="300" r="104" fill="none" stroke="#f4f3ef" stroke-width="58"/>
+    <rect x="307" y="104" width="58" height="329" rx="29" fill="#f4f3ef"/>
+    <circle cx="232" cy="300" r="50" fill="#f07a00"/>
+  </g>
 </svg>

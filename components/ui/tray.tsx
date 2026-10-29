@@ -1,10 +1,29 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useSyncExternalStore } from "react";
 import { AnimatePresence, motion, useDragControls } from "framer-motion";
 import { X } from "lucide-react";
 
 export const spring = { type: "spring", stiffness: 420, damping: 34, mass: 0.9 } as const;
+
+// Phones get a sheet that slides up; desktop gets a card that settles in
+// place. Leaving is always quick and eased, never a long spring.
+const wide = "(min-width: 640px)";
+const subscribeWide = (cb: () => void) => {
+  const m = matchMedia(wide);
+  m.addEventListener("change", cb);
+  return () => m.removeEventListener("change", cb);
+};
+const SHEET = {
+  initial: { y: "100%" },
+  animate: { y: 0, transition: { type: "spring", stiffness: 380, damping: 38, mass: 0.9 } },
+  exit: { y: "100%", transition: { duration: 0.24, ease: [0.4, 0, 1, 1] } },
+} as const;
+const CARD = {
+  initial: { opacity: 0, y: 14, scale: 0.97 },
+  animate: { opacity: 1, y: 0, scale: 1, transition: { type: "spring", stiffness: 420, damping: 36 } },
+  exit: { opacity: 0, y: 8, scale: 0.98, transition: { duration: 0.16, ease: [0.4, 0, 1, 1] } },
+} as const;
 
 interface TrayProps {
   open: boolean;
@@ -22,6 +41,8 @@ interface TrayProps {
  */
 export function Tray({ open, onClose, title, icon, children, tone = "default" }: TrayProps) {
   const drag = useDragControls();
+  const desktop = useSyncExternalStore(subscribeWide, () => matchMedia(wide).matches, () => true);
+  const motionSet = desktop ? CARD : SHEET;
   const panel = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -46,9 +67,8 @@ export function Tray({ open, onClose, title, icon, children, tone = "default" }:
           <motion.div
             className="absolute inset-0 bg-[#2b2215]/30 dark:bg-black/60"
             initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
+            animate={{ opacity: 1, transition: { duration: 0.2 } }}
+            exit={{ opacity: 0, transition: { duration: 0.18 } }}
             onClick={onClose}
           />
           <motion.div
@@ -57,11 +77,10 @@ export function Tray({ open, onClose, title, icon, children, tone = "default" }:
             role="dialog"
             aria-modal="true"
             aria-label={title}
-            initial={{ y: "100%", opacity: 0.6 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: "100%", opacity: 0.6 }}
-            transition={spring}
-            drag="y"
+            initial={motionSet.initial}
+            animate={motionSet.animate}
+            exit={motionSet.exit}
+            drag={desktop ? false : "y"}
             dragControls={drag}
             dragListener={false}
             dragConstraints={{ top: 0, bottom: 0 }}
@@ -69,6 +88,7 @@ export function Tray({ open, onClose, title, icon, children, tone = "default" }:
             onDragEnd={(_, info) => {
               if (info.offset.y > 90 || info.velocity.y > 500) onClose();
             }}
+            style={{ willChange: "transform" }}
             className={`relative max-h-[88dvh] w-full overflow-hidden rounded-t-[14px] shadow-lift outline-none sm:max-w-[500px] sm:rounded-[14px] ${
               inverse ? "bg-[#111110] text-[#ecebe6] [--ink:#ecebe6] [--ink-2:#a3a199] [--ink-3:#6b6a64] [--sunken:#232321] [--line:rgba(236,235,230,.1)] [--bg:#111110]" : "bg-paper text-ink"
             }`}

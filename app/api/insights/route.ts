@@ -4,8 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { checkAiBudget, checkRateLimit, getRequestIp } from "@/lib/rate-limit";
 import { isValidOrigin } from "@/lib/origin-check";
 import { apiError } from "@/lib/api-error";
-import { withRetry } from "@/lib/gemini-retry";
-import { getGeminiModel } from "@/lib/gemini";
+import { ask, plain } from "@/lib/gemini";
 
 function sanitize(s: string): string {
   return s
@@ -99,12 +98,10 @@ Line 1: a 2–3 sentence read of their spending. Speak to the user as "you", men
 Line 2: starts with "Try:" and gives ONE specific, realistic thing to do next month to save money, with a rough monthly saving in dollars. Under 30 words.
 All amounts are in Canadian Dollars (CAD).`;
 
-    const model = getGeminiModel(apiKey);
-    const result = await withRetry(() => model.generateContent(prompt));
-    const text = result.response.text().trim();
+    const text = await ask(apiKey, prompt);
     const tipAt = text.search(/^\s*Try:/im);
-    const insight = (tipAt >= 0 ? text.slice(0, tipAt) : text).trim();
-    const tip = tipAt >= 0 ? text.slice(tipAt).replace(/^\s*Try:\s*/i, "").trim() : null;
+    const insight = plain(tipAt >= 0 ? text.slice(0, tipAt) : text);
+    const tip = tipAt >= 0 ? plain(text.slice(tipAt).replace(/^\s*Try:\s*/i, "")) : null;
 
     return NextResponse.json({ insight, tip });
   } catch (error: unknown) {

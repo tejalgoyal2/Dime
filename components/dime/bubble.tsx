@@ -1,17 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 
 /**
- * One message in the conversation. Dime's arrive after a short "typing" beat
- * and then word by word; yours land straight away on the right.
+ * One message in the conversation. Mine fade in word by word; yours land
+ * straight away on the right.
  */
 export function Bubble({
   text,
   from = "dime",
   tone = "plain",
   instant = false,
+  still = false,
   className = "",
   children,
 }: {
@@ -20,6 +20,8 @@ export function Bubble({
   tone?: "plain" | "lego";
   /** Skip the typing beat (when the parent shows its own). */
   instant?: boolean;
+  /** No entrance or size animation (the parent moves the whole thread). */
+  still?: boolean;
   className?: string;
   children?: React.ReactNode;
 }) {
@@ -27,14 +29,14 @@ export function Bubble({
   const color = you ? "bg-ink text-paper" : tone === "lego" ? "bg-lego text-white" : "bg-paper text-ink";
   return (
     <motion.div
-      layout
-      initial={{ opacity: 0, y: 10, scale: 0.98 }}
+      layout={!still}
+      initial={still ? false : { opacity: 0, y: 10, scale: 0.98 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ type: "spring", stiffness: 420, damping: 34 }}
       style={{ borderRadius: 14 }}
       className={`relative w-fit max-w-full px-4 py-3 shadow-paper ${you ? "ml-auto !rounded-tr-[4px]" : "!rounded-tl-[4px]"} ${color} ${className}`}
     >
-      <motion.div layout="position">
+      <motion.div layout={still ? false : "position"}>
         {you || instant ? <p className="text-[16px] font-medium leading-snug">{text}</p> : <Typed text={text} />}
         {children}
       </motion.div>
@@ -42,47 +44,49 @@ export function Bubble({
   );
 }
 
+// New lines fade in a word at a time. The "typing" beat is TypingBubble's job.
 function Typed({ text }: { text: string }) {
-  const [shown, setShown] = useState(text);
-  const [typing, setTyping] = useState(true);
-  if (shown !== text) {
-    setShown(text);
-    setTyping(true);
-  }
-  useEffect(() => {
-    const t = setTimeout(() => setTyping(false), 420);
-    return () => clearTimeout(t);
-  }, [shown]);
-
   return (
     <AnimatePresence mode="popLayout" initial={false}>
-      {typing ? (
-        <motion.span key="dots" className="flex h-[21px] items-center gap-1" exit={{ opacity: 0, transition: { duration: 0.1 } }} aria-label="Dime is typing">
-          {[0, 1, 2].map((i) => (
-            <motion.span
-              key={i}
-              className="h-1.5 w-1.5 rounded-full bg-current opacity-50"
-              animate={{ y: [0, -3, 0] }}
-              transition={{ duration: 0.6, repeat: Infinity, delay: i * 0.12 }}
-            />
-          ))}
-        </motion.span>
-      ) : (
-        <motion.p key={shown} aria-live="polite" className="text-[16px] font-medium leading-snug">
-          {shown.split(" ").map((w, i) => (
-            <motion.span
-              key={i}
-              className="inline-block"
-              initial={{ opacity: 0, y: 4 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.03, duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-            >
-              {w}&nbsp;
-            </motion.span>
-          ))}
-        </motion.p>
-      )}
+      <motion.p key={text} aria-live="polite" className="text-[16px] font-medium leading-snug" exit={{ opacity: 0, transition: { duration: 0.08 } }}>
+        {text.split(" ").map((w, i) => (
+          <motion.span
+            key={i}
+            className="inline-block"
+            initial={{ opacity: 0, y: 3 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: Math.min(i * 0.025, 0.4), duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+          >
+            {w}&nbsp;
+          </motion.span>
+        ))}
+      </motion.p>
     </AnimatePresence>
+  );
+}
+
+/**
+ * The three dots, iMessage style: a soft wave of light through the dots
+ * while the bubble breathes a little. Pure CSS, so it costs nothing.
+ */
+export function TypingBubble({ className = "bg-paper" }: { className?: string }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.8, y: 6 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.8, transition: { duration: 0.12 } }}
+      transition={{ type: "spring", stiffness: 520, damping: 32 }}
+      style={{ transformOrigin: "0% 100%" }}
+      role="status"
+      aria-label="Typing"
+      className={`typing-bubble w-fit rounded-[16px] rounded-tl-[4px] px-4 py-3.5 ${className}`}
+    >
+      <span className="flex items-center gap-[5px]">
+        <i className="typing-dot" />
+        <i className="typing-dot" />
+        <i className="typing-dot" />
+      </span>
+    </motion.div>
   );
 }
 

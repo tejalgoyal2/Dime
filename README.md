@@ -1,203 +1,160 @@
 # Dime
 
-An AI expense tracker that parses natural language, categorizes spending, and roasts you in Hinglish for your financial decisions.
+<img src="public/logo.svg" width="56" align="right" alt="Dime logo: a d holding an orange coin">
 
-Type `"coffee at starbucks $5"` — Gemini handles the rest: amount, category, emoji, Need vs Want classification. Then it judges you.
+An expense tracker you text like a friend. You tell it `coffee & croissant 7.25`, it files it under **Life** (you needed it) or **Lego** (you wanted it), keeps the receipt, and roasts you a little in Hinglish.
 
-**Live at** [dime.tgoyal.me](https://dime.tgoyal.me)
+Every cent has a story. Usually a bad one.
+
+**Live:** [dime.tgoyal.me](https://dime.tgoyal.me) (invite only. Don't have a code? Ask a friend. The friend is me.)
+
+![Dime](public/og-image.png)
 
 ---
 
-## The Stack
+## Why I made this
+
+Every budgeting app I tried wanted me to pick a category from a dropdown, at a checkout counter, with a coffee in one hand. I'm not doing that. I will, however, send a text.
+
+So Dime is a chat. You type what you bought the way you'd say it, and it does the boring part. No forms, no dropdowns, no "select a subcategory".
+
+It's the rewrite of [WalletRIP](https://github.com/tejalgoyal2/WalletRIP), my first attempt, which worked but wrote to the database straight from the browser. We don't talk about WalletRIP.
+
+---
+
+## What it does
+
+**You text, it sorts.** `uber home 18`, `groceries at freshco 84`, `netflix 16.99`. It finds the price, picks a category, decides Life or Lego, and replies.
+
+**Life vs Lego.** Rent, groceries, your phone bill: Life. Bubble tea, a third pair of white sneakers, that 2am pizza: Lego. Disagree? Tap the coin to flip it. Dime remembers, so next time coffee goes where you put it.
+
+**Two numbers? It asks.** `got 310 airpods pro 34` is confusing even for humans. Dime highlights the price it thinks you meant and lets you tap the other one.
+
+**Big spends get the cash bill.** Anything $50 and up gets a little green bill so future you knows exactly where it went.
+
+**A dashboard you can rearrange.** Drag cards around, resize them, hide the ones you don't care about. Your layout follows you between devices.
+
+- *How it's going*: bars, Life vs Lego lines, or a running total racing last month (and your budget, if you set one)
+- *The receipt*: today's damage, printed
+- *The seesaw*: Life and Lego, literally weighed against each other
+- *Dime club*: a punch card for logging a few times a week (you pick how many, it's not a daily guilt trip)
+- *The year*: a GitHub-style heatmap of your spending
+- *Biggest hits*, *When you spend* (night-you is expensive), *Categories over time*, *Subscriptions*, *Weekdays*
+
+**Read my month / Roast me.** One gives you an honest summary and one thing to try. The other gives you a performance review you didn't ask for.
+
+**Search everything.** Hit ⌘K (Ctrl K on Windows) and type `coffee`. It tells you how many coffees you've bought and what they cost. You can also log from there.
+
+**Six colour palettes, a real dark mode, and your own animal.** Pick a fox. Or a frog. I'm not your mom.
+
+**It talks like a person.** Mostly like me at 1am. Try typing 67.
+
+---
+
+## Log from anywhere
+
+Dime has a tiny API so you can log without opening the app: tap your phone to pay, forward a bank text, or ask Siri. It logs quietly and replies with nothing, the way a good friend takes a hint.
+
+**Full setup (iPhone, Android and everything else): [docs/auto-log.md](docs/auto-log.md)**
+
+The short version:
+
+1. In Dime, open your avatar menu → **Auto-log** → **Create a token**. Copy it. It's shown once.
+2. Send it what you spent:
+
+```bash
+curl -X POST https://dime.tgoyal.me/api/ingest \
+  -H "Authorization: Bearer dime_..." \
+  -d "coffee & croissant 7"
+```
+
+That's the whole API. Plain text or `{"text": "..."}` both work. Bank alerts work too: OTPs, refunds and deposits get ignored, and the same alert forwarded twice only logs once.
+
+---
+
+## How it's built
 
 | | |
 |---|---|
-| **Framework** | Next.js 16, App Router, TypeScript strict |
-| **Runtime** | Cloudflare Workers via [@opennextjs/cloudflare](https://opennext.js.org/cloudflare) |
-| **Database + Auth** | Supabase — PostgreSQL, row-level security, cookie sessions |
-| **AI** | Google Gemini 2.5 Flash-Lite |
-| **Rate Limiting** | Upstash Redis, sliding window |
-| **Validation** | Zod v4, shared schemas between client and server |
-| **Styling** | Tailwind v4, Framer Motion, CSS custom properties |
-| **Charts** | Recharts |
-| **CI/CD** | GitHub Actions → Cloudflare Workers |
+| **App** | Next.js 16 (App Router), React 19, TypeScript strict |
+| **Hosting** | Cloudflare Workers via [OpenNext](https://opennext.js.org/cloudflare) |
+| **Database + auth** | Supabase (Postgres with row-level security) |
+| **AI** | Google Gemini 3.5 Flash-Lite through the Gen AI SDK, with a fallback model |
+| **Rate limiting** | Upstash Redis |
+| **Validation** | Zod v4, same schemas on client and server |
+| **Look and feel** | Tailwind v4, Framer Motion, dnd-kit, NumberFlow, cmdk, Sonner |
+| **Type** | [Chillax](https://www.fontshare.com/fonts/chillax) |
 
----
+The browser never writes to the database. Everything goes through API routes that check who you are, validate the input, and rate-limit you.
 
-## Features
-
-**Natural language input** — no forms, no dropdowns. `"grabbed lunch $14"` just works.
-
-**AI parsing** — Gemini extracts the amount, picks a category and emoji, classifies Need vs Want, and writes a Hinglish roast.
-
-**Log from anywhere** — Siri, Apple Shortcuts, Raycast, bank-text automations or `curl`. Personal, revocable tokens.
-
-**AI insights** — on-demand 30-day spending analysis. It notices patterns you'd rather it didn't.
-
-**Spending roasts** — hit the roast button, get a sarcastic Hinglish performance review of your monthly spending.
-
-**Subscription hunter** — finds recurring charges you forgot about.
-
-**Bulk import** — paste a bank statement, Gemini parses the whole thing. Preview and confirm before inserting.
-
-**Charts** — Needs vs Wants donut chart + weekly/monthly stacked bar trends.
-
-**CSV export** — sanitized against formula injection.
-
-**Streak tracking** — consecutive days logged. Gamification for adults who need external validation.
-
-**Dark/light theme** — dark by default. Neon Midnight palette: `#0d0d0d` background, `#00ff88` accent.
-
----
-
-## Architecture
+**Routes:** `/api/expenses`, `/api/parse`, `/api/insights`, `/api/roast`, `/api/analyze-subs`, `/api/signup`, `/api/ingest`, `/api/quick-add`, `/api/tokens`, `/api/preferences`, `/api/profile`
 
 ```
-Browser → Next.js App Router → API Routes → Supabase / Gemini / Upstash
-                                    ↓
-                              Cloudflare Workers
-                              (@opennextjs/cloudflare)
+app/
+  api/            the routes above
+  login/          the chat you sign in through
+components/
+  dashboard/      the composer, the cards, the drawer, ⌘K, the trays
+  dime/           chat bubbles and the typing dots
+  ui/             pills, trays, money, the logo, the cash bill, animals
+lib/
+  ingest.ts       the auto-log pipeline
+  life-lego.ts    how Life vs Lego gets decided, and remembered
+  gemini.ts       every AI call goes through here
+  amounts.ts      finding the price in what you typed
+  rate-limit.ts   all the limits in one place
+supabase/         SQL to run once (keep-alive table, dashboard + auto-log tables)
 ```
-
-The client never writes to the database directly. Every mutation goes through API routes with auth checks, Zod validation, and rate limiting.
-
-**API routes:** `GET/POST/DELETE/PATCH /api/expenses`, `POST /api/parse`, `POST /api/quick-add`, `POST /api/insights`, `POST /api/roast`, `POST /api/analyze-subs`, `POST /api/signup`, `POST /api/ingest`, `GET/POST/DELETE /api/tokens`, `GET/PUT /api/preferences`
-
-**State management:** React Context + `useReducer` with optimistic updates and rollback on failure.
 
 ---
 
-## Log from anywhere (the API)
+## Security, briefly
 
-Log expenses without opening Dime: Siri Shortcuts, Raycast, a phone automation that forwards bank texts, or plain `curl`. Make a personal token in the app (avatar → Auto-log). It's shown once and stored only as a SHA-256 hash; revoke it any time.
+I'd like nobody to read your coffee habits, including me.
 
-```bash
-# A note, the way you'd type it in the app
-curl -X POST https://dime.tgoyal.me/api/ingest \
-  -H "Authorization: Bearer dime_..." \
-  -H "Content-Type: application/json" \
-  -d '{"text": "coffee & croissant 7"}'
-
-# A bank alert, forwarded by an automation
-curl -X POST https://dime.tgoyal.me/api/ingest \
-  -H "Authorization: Bearer dime_..." \
-  -H "Content-Type: application/json" \
-  -d '{"text": "Your Visa *4417 was charged $14.85 at BLUE BOTTLE COFFEE", "source": "sms"}'
-```
-
-It answers with an empty `204 No Content`; automations don't need a reply. The outcome is in the `X-Dime-Status` header: `logged`, `ignored` (OTPs, refunds, deposits, declines, no amount) or `duplicate` (the same bank alert twice logs once). The AI only reads the message; the roasts stay in the app.
-
-- `source` is `api` (default), `shortcut`, `sms`, `email` or `notification`. Only alerts (`sms`, `email`, `notification`) are de-duplicated; two "coffee 5"s in a day are two coffees.
-- A plain-text body works too: `-H "Content-Type: text/plain" -d "uber home 18"`.
-- Optional `date` (`YYYY-MM-DD`) backdates it.
-
-**Apple Shortcut:** Ask for Input → Get Contents of URL (POST, header `Authorization: Bearer dime_...`, JSON body `text` = input) (no need to show the result). Name it "Log Expense" and trigger it with Siri.
-
-**Limits** (so nobody can run up the bill): 30 requests a minute per IP, checked before anything else; 12 a minute per token; 300 AI reads per person per day across the app and the API; bodies over 8 KB are refused. Errors come back as `{ "error", "code", "retryAfter" }` with 401, 413, 422 or 429.
-
-`/api/quick-add` is the older endpoint. It now runs the same pipeline and accepts personal tokens; the legacy shared `QUICK_ADD_TOKEN` still works while it's set.
-
-Needs `supabase/migrations/002_dashboard_autolog.sql`, the `SUPABASE_SERVICE_ROLE_KEY` secret (a Supabase secret key, `sb_secret_…`, or the legacy service_role key) and Upstash.
+- **Accounts:** a name and a secret, no email, no phone. Sign-up happens on the server only after the invite code checks out. Forget your secret and I genuinely can't help. Everything has its settlements.
+- **Your data:** row-level security, so every query only ever sees your rows.
+- **Auto-log tokens:** stored as SHA-256 hashes, shown once, revocable any time.
+- **Rate limits:** 20 requests a minute in the app, 30 a minute per IP and 12 a minute per token on the API, 300 AI calls per person per day. The IP comes from Cloudflare's own header, which can't be faked.
+- **Headers:** a strict Content-Security-Policy, no framing, HSTS, nosniff.
+- **AI:** your messages are treated as data, not instructions, and whatever comes back is validated before it's saved.
+- **CSV export:** protected against spreadsheet formula injection.
 
 ---
 
-## Run It Yourself
+## Run it yourself
 
 ```bash
 git clone https://github.com/tejalgoyal2/Dime.git && cd Dime
 npm install
-cp .env.example .env.local
-# fill in env vars — everything is documented in .env.example
+cp .env.example .env.local   # every variable is explained in there
 npm run dev
 ```
 
-**Requirements:** Node.js 18+, a [Supabase](https://supabase.com) project, a [Gemini API key](https://aistudio.google.com/apikey), an [Upstash Redis](https://upstash.com) database.
+You'll need a [Supabase](https://supabase.com) project, a [Gemini API key](https://aistudio.google.com/apikey) and an [Upstash Redis](https://upstash.com) database. All free tiers.
+
+Then, once, in the Supabase SQL editor: run `supabase/keepalive.sql` and `supabase/migrations/002_dashboard_autolog.sql`, and turn off **Authentication → Sign In / Providers → Allow new users to sign up** (Dime makes accounts itself, after the invite check).
 
 ```bash
-npm run dev        # local dev server
 npm run build      # production build
-npm run build:cf   # cloudflare workers build
-npm run preview    # local preview of cf build
-npm run deploy     # deploy to cloudflare
+npm run build:cf   # Cloudflare build
+npm run preview    # run the Cloudflare build locally
 ```
 
----
+Pushing to `main` deploys to Cloudflare through GitHub Actions. A second workflow pokes Supabase every three days so the free project never falls asleep.
 
-## Project Structure
+**Two Cloudflare Workers lessons that cost me hours:**
 
-```
-app/
-  api/            7 routes — CRUD, parse, insights, roast, quick-add, subs, invite
-  login/          callsign + invite code auth
-  page.tsx        auth gate → dashboard
-
-components/
-  dashboard/      form, table, charts, modals, insights, roast, bulk import
-  providers/      expenses context, theme context, toast context
-  ui/             button, modal, toast, skeleton, error-boundary
-
-lib/
-  supabase/       browser client, server client, middleware, types
-  schemas/        Zod v4 expense schemas (shared client + server)
-  gemini.ts       model config, safety settings
-  gemini-retry.ts exponential backoff (2s/4s/8s)
-  rate-limit.ts   Upstash Redis sliding window (lazy init for Workers)
-  origin-check.ts origin header validation
-  csv-sanitize.ts formula injection protection
-  api-error.ts    typed error responses
-```
+- Don't add `export const runtime = "edge"` to API routes. OpenNext already runs them at the edge, and the directive breaks them with a silent 500 and no stack trace.
+- Read `process.env` inside functions, not at the top of a module. Workers fill env in late.
 
 ---
 
-## Security
+## Thanks
 
-All mutations go through server API routes — the client never writes to Supabase directly. This was the single biggest change from [WalletRIP](https://github.com/tejalgoyal2/WalletRIP) (the v1 that did client-side inserts).
-
-**Auth:** Supabase cookie sessions with middleware protection. Signup is invite-gated and happens on the server (the invite code is checked before the account is created, with 5 tries / 15 min per IP); public Supabase sign-ups should be switched off.
-
-**Validation:** Zod v4 schemas validate every request body server-side.
-
-**Rate limiting:** Upstash Redis, persistent across Workers isolates, keyed on Cloudflare's `cf-connecting-ip` (which clients can't forge). App routes: 20 req/min. Invite validation: 5 req/15 min. Public API: 30/min per IP and 12/min per token. AI: 300 calls per person per day.
-
-**Headers:** `X-Frame-Options: DENY`, `nosniff`, HSTS, a strict referrer policy and a locked-down permissions policy on every response.
-
-**Origin checking:** API routes validate the `Origin` header.
-
-**Input sanitization:** Expense descriptions are stripped before hitting Gemini to mitigate prompt injection.
-
-**CSV export:** Cells starting with `=`, `+`, `-`, `@` are prefixed to prevent formula injection.
-
-**Row-level security:** All Supabase queries are scoped to the authenticated user via RLS policies.
+- Animal faces: [Fluent Emoji](https://github.com/microsoft/fluentui-emoji) by Microsoft (MIT)
+- Type: [Chillax](https://www.fontshare.com/fonts/chillax) by Indian Type Foundry
 
 ---
 
-## Cloudflare Workers Notes
-
-Dime runs on Cloudflare Workers via `@opennextjs/cloudflare` (not `@cloudflare/next-on-pages`, which doesn't support Next.js 16).
-
-Two things that will save you hours if you fork this:
-
-**Do not add `export const runtime = "edge"` to API routes.** OpenNext handles routing internally — the directive conflicts with it and causes silent 500 errors with no stack trace. Every route already runs at the edge.
-
-**Use lazy initialization for anything that reads `process.env`.** Workers don't populate env vars at module evaluation time. Singletons like the Redis client use a `let _instance = null; function getInstance()` pattern.
-
----
-
-## Background
-
-Dime is a ground-up rewrite of [WalletRIP](https://github.com/tejalgoyal2/WalletRIP). Same concept, different everything: server-side writes, TypeScript strict, Zod validation, persistent rate limiting, Cloudflare Workers instead of Vercel, and a design system ([Neon Midnight](https://github.com/tejalgoyal2/Dime/blob/main/app/globals.css)) that doesn't look like it was scaffolded at 3am.
-
----
-
-## What Could Come Next
-
-Not promises. Just ideas.
-
-- **Edit expenses** — PATCH endpoint exists, needs a UI
-- **Budget goals** — set a limit, get warned, ignore the warning
-- **Multi-currency** — for when `"coffee $5"` becomes `"koffie €4"`
-- **Recurring tracking** — the database field exists, the logic doesn't
-
----
-
-Built by [Tejal Goyal](https://tgoyal.me) · [LinkedIn](https://linkedin.com/in/tejalgoyal) · [Blog](https://tejalgoyal2.github.io)
+Made with too much coffee by [Tejal Goyal](https://tgoyal.me) · [LinkedIn](https://linkedin.com/in/tejalgoyal) · [Blog](https://tejalgoyal2.github.io)

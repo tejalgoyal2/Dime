@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { formatDistanceToNowStrict, parseISO } from "date-fns";
 import { Check, Copy, Trash2, Zap } from "lucide-react";
+import { Pills } from "@/components/ui/pills";
 import { useExpenses } from "@/components/providers/expenses-provider";
 import { useToast } from "@/components/providers/toast-provider";
 import { Tray } from "@/components/ui/tray";
@@ -109,8 +110,10 @@ export function AutologTray({ open, onClose }: { open: boolean; onClose: () => v
       headers: { Authorization: `Bearer ${fresh}`, "Content-Type": "application/json" },
       body: JSON.stringify({ text: SAMPLE, source: "sms" }),
     }).catch(() => null);
-    const d = (await r?.json().catch(() => null)) as { message?: string; error?: string } | null;
-    setTest(d?.message ?? d?.error ?? "No response");
+    // Success is an empty 204 with the outcome in a header; errors are JSON.
+    const status = r?.headers.get("X-Dime-Status");
+    const d = r && !r.ok ? ((await r.json().catch(() => null)) as { error?: string } | null) : null;
+    setTest(status === "logged" ? "Logged it. Check your receipt." : status === "duplicate" ? "Already had that one." : status === "ignored" ? "Not a purchase, so I skipped it." : d?.error ?? "No response");
     if (r?.ok) refresh();
   }
 
@@ -134,20 +137,21 @@ export function AutologTray({ open, onClose }: { open: boolean; onClose: () => v
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-3 rounded-[10px] bg-sunken p-1">
-              {(["iphone", "android", "other"] as const).map((p) => (
-                <button
-                  key={p}
-                  onClick={() => setPlatform(p)}
-                  className={`relative h-9 rounded-[8px] text-[14px] font-medium ${platform === p ? "text-ink" : "text-ink-2"}`}
-                >
-                  {platform === p && (
-                    <motion.span layoutId="platform" className="absolute inset-0 rounded-[8px] bg-surface shadow-paper" transition={{ type: "spring", stiffness: 500, damping: 38 }} />
-                  )}
-                  <span className="relative">{p === "iphone" ? "iPhone" : p === "android" ? "Android" : "Anything"}</span>
-                </button>
-              ))}
-            </div>
+            <Pills
+              label="Your phone"
+              value={platform}
+              onChange={setPlatform}
+              options={[
+                { value: "iphone", label: "iPhone" },
+                { value: "android", label: "Android" },
+                { value: "other", label: "Anything" },
+              ]}
+              className="rounded-[10px] bg-sunken p-1"
+              buttonClassName="h-9 flex-1 rounded-[8px] text-[14px] font-medium"
+              markerClassName="bg-paper shadow-paper"
+              activeClassName="text-ink"
+              idleClassName="text-ink-2 hover:text-ink"
+            />
 
             <div className="space-y-3">
               <CopyField label="Endpoint" value={endpoint} />
@@ -174,8 +178,7 @@ export function AutologTray({ open, onClose }: { open: boolean; onClose: () => v
                   <>Open <B>Shortcuts</B> → <B>Automation</B> → <B>+</B> → <B>Message</B>.</>,
                   <>Set <B>Message Contains</B> to a word your bank uses, like <B>charged</B> or <B>debited</B> (or pick your bank as <B>Sender</B>). Choose <B>Run Immediately</B>.</>,
                   <>Add <B>Get Contents of URL</B>. URL: the endpoint. Method <B>POST</B>. Header <B>Authorization</B>: <code>Bearer {shownToken.slice(0, 14)}…</code></>,
-                  <>Request Body <B>JSON</B>, key <B>text</B>, value <B>Shortcut Input → Message</B>.</>,
-                  <>Optional: add <B>Show Notification</B> with the result&apos;s <B>message</B> so you see &ldquo;Logged $14.85 · Blue Bottle&rdquo;.</>,
+                  <>Request Body <B>JSON</B>, key <B>text</B>, value <B>Shortcut Input → Message</B>. That&apos;s it. It logs quietly, no pop-ups.</>,
                 ]}
               />
             )}
@@ -200,6 +203,15 @@ export function AutologTray({ open, onClose }: { open: boolean; onClose: () => v
   -d '{"text": "Card charged $14.85 at Blue Bottle", "source": "api"}'`}</pre>
               </div>
             )}
+
+            <a
+              href="https://github.com/tejalgoyal2/Dime/blob/main/docs/auto-log.md"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block text-[14px] font-medium text-ink-2 underline decoration-line-strong underline-offset-4 hover:text-ink"
+            >
+              More ways: Apple Pay, Siri, Raycast, the terminal →
+            </a>
 
             {tokens && tokens.length > 0 && (
               <div>

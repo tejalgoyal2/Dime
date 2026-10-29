@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, animate, motion } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
 import { emailForName } from "@/lib/callsign";
-import { Bubble } from "@/components/dime/bubble";
+import { Bubble, TypingBubble } from "@/components/dime/bubble";
 import { Wordmark } from "@/components/ui/wordmark";
 import { CoinToggle } from "@/components/ui/coin-toggle";
 
@@ -19,13 +19,16 @@ const TAKEN = [
 ];
 
 function hello(hour: number) {
-  if (hour < 0) return "Hey :)";
-  if (hour < 5) return "Hey, night owl. It's late, but I'm up too.";
-  if (hour < 12) return "Morning! Coffee already? :)";
-  if (hour < 17) return "Hey! Good afternoon :)";
-  if (hour < 22) return "Hey, good evening :)";
-  return "Hey! Late one, huh.";
+  if (hour < 0) return "yooo what's good";
+  if (hour < 5) return `yo it's like ${hour === 0 ? 12 : hour}am. what are we doing up 💀`;
+  if (hour < 12) return "gm gm. coffee first or receipts first?";
+  if (hour < 17) return "yooo whatsuppp";
+  if (hour < 22) return "heyyy, evening check-in?";
+  return "late night spending era? no judgment. (some judgment)";
 }
+
+// 6-7. If you know, you know.
+const sixSeven = (s: string) => /^\s*6\s*[-–]?\s*7\s*$|six\s*seven/i.test(s);
 
 const noop = () => () => {};
 let seq = 100;
@@ -49,10 +52,23 @@ export default function LoginPage() {
   const scroller = useRef<HTMLDivElement>(null);
   const handle = name.trim();
 
-  // Keep the newest message in view.
-  useEffect(() => {
-    scroller.current?.scrollTo({ top: scroller.current.scrollHeight, behavior: "smooth" });
-  }, [msgs, typing]);
+  // iMessage-style: when something new lands, the whole thread slides up
+  // together. Jump to the bottom, then start the thread offset by however much
+  // it grew and spring it back to 0. One transform, so nothing can overlap.
+  const list = useRef<HTMLDivElement>(null);
+  const lastHeight = useRef<number | null>(null);
+  useLayoutEffect(() => {
+    const el = list.current;
+    const box = scroller.current;
+    if (!el || !box) return;
+    const height = el.offsetHeight;
+    const grew = lastHeight.current === null ? 0 : height - lastHeight.current;
+    lastHeight.current = height;
+    box.scrollTop = box.scrollHeight;
+    if (!grew) return;
+    const now = new DOMMatrixReadOnly(getComputedStyle(el).transform).m42;
+    animate(el, { y: [now + grew, 0] }, { type: "spring", stiffness: 380, damping: 36 });
+  }, [msgs.length, typing]);
 
   // Put the cursor in whichever box is showing.
   useEffect(() => {
@@ -80,8 +96,8 @@ export default function LoginPage() {
     you(m === "in" ? "Yep, sign me in" : "Nope, I'm new here");
     say(
       m === "in"
-        ? ["Welcome back! What's your name on here?"]
-        : ["Ooh, a new person :D", "What should I call you? No email, no phone, just a name."],
+        ? ["ayyy welcome back. who dis?"]
+        : ["ooh, fresh face 👀", "who dis? just a name. no email, no phone, no drama."],
       "name"
     );
   }
@@ -90,23 +106,28 @@ export default function LoginPage() {
     if (!handle) return;
     you(handle);
     setStep("busy");
+    const vibe = sixSeven(handle)
+      ? ["SIX SEVENNN 🤷 okay you're funny."]
+      : mode === "in"
+        ? [`${handle}! the legend returns.`]
+        : [`${handle}. love that for you.`];
     say(
       mode === "in"
-        ? [`${handle}! Good to see you.`, "And your secret? I'm not looking, promise."]
-        : [`${handle}, nice.`, "Pick a secret, 6+ characters. Psst: if you forget it, I genuinely can't do anything. Everything has its settlements."],
+        ? [...vibe, "now the secret. i'm not looking 🙈"]
+        : [...vibe, "pick a secret, 6+ characters. fr tho, if you forget it i genuinely can't help. everything has its settlements."],
       "secret"
     );
   }
 
   function submitSecret() {
     if (secret.length < 6) {
-      say(["That's a bit short. 6 characters at least?"], "secret");
+      say(["bit short, no? 6 characters at least."], "secret");
       return;
     }
     you("•".repeat(Math.min(secret.length, 12)));
     if (mode === "new") {
       setStep("busy");
-      say(["Last thing: the invite code.", "Don't have one? Ask a friend (me :D)"], "invite");
+      say(["last thing: the invite code.", "don't have one? Ask a friend (me :D)"], "invite");
     } else go();
   }
 
@@ -139,55 +160,55 @@ export default function LoginPage() {
           }
           if (res.status === 400) {
             setName("");
-            return fail("Let's keep the name simple: letters, numbers, spaces, dots or dashes.", "name");
+            return fail("keep the name simple: letters, numbers, spaces, dots or dashes.", "name");
           }
           return fail(
             res.status === 429
-              ? "Too many tries. Give it a few minutes?"
+              ? "ok that's a lot of tries. give it a few minutes?"
               : res.status === 403
-                ? "Hmm, that code isn't one of mine. Ask me for the right one :)"
-                : "Something broke on my side. Try again in a bit?",
+                ? "hmm, that code isn't one of mine. ask me for the right one :)"
+                : "something broke on my side. try again in a bit?",
             "invite"
           );
         }
         const { error } = await supabase.auth.signInWithPassword({ email, password: secret });
-        if (error) return fail(/fetch|network/i.test(error.message) ? "I can't reach my notebook. Is your internet okay?" : error.message, "secret");
+        if (error) return fail(/fetch|network/i.test(error.message) ? "I can't reach my notebook rn. wifi okay?" : error.message, "secret");
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password: secret });
         if (error) {
           setSecret("");
           return fail(
             /invalid login/i.test(error.message)
-              ? "Hmm, that name and secret don't match. Try the secret again?"
+              ? "hmm, that's not it chief. try the secret again?"
               : /fetch|network/i.test(error.message)
-                ? "I can't reach my notebook. Is your internet okay?"
+                ? "I can't reach my notebook rn. wifi okay?"
                 : error.message,
             "secret"
           );
         }
       }
       setTyping(false);
-      say([mode === "in" ? "You're in. Let's see the damage :D" : `Done! Welcome to Dime, ${handle}.`], "done");
+      say([mode === "in" ? "you're in. let's see the damage :D" : `yoink, you're in. welcome to Dime, ${handle}.`], "done");
       setTimeout(() => {
         router.push("/");
         router.refresh();
       }, 1700);
     } catch {
-      fail("I can't reach my notebook. Is your internet okay?", mode === "new" ? "invite" : "secret");
+      fail("I can't reach my notebook rn. wifi okay?", mode === "new" ? "invite" : "secret");
     }
   }
 
   function back() {
     setStep("busy");
     setSecret("");
-    you("Wait, wrong name");
-    say(["No worries. What's the name?"], "name");
+    you("wait, wrong name");
+    say(["no stress. what's the name?"], "name");
   }
 
   const thread: Msg[] = [
     { id: 1, from: "tejal", text: hello(hour) },
-    { id: 2, from: "tejal", text: "I'm Tejal. I made Dime. You tell it what you spend, it sorts it into Life and Lego, and roasts you a little." },
-    { id: 3, from: "tejal", text: "Have we met before?" },
+    { id: 2, from: "tejal", text: "I'm Tejal, I made Dime. you tell it what you spent, it sorts it into Life and Lego, then roasts you a lil." },
+    { id: 3, from: "tejal", text: "so, have we met before?" },
     ...msgs,
   ];
 
@@ -244,30 +265,29 @@ export default function LoginPage() {
             </div>
           </div>
 
-          <div ref={scroller} className="scrollbar-none flex flex-1 flex-col gap-2 overflow-y-auto px-5 py-5">
+          <div ref={scroller} className="scrollbar-none flex flex-1 flex-col overflow-y-auto px-5 py-5">
             <div className="mt-auto" />
-            <AnimatePresence initial={false}>
+            <div ref={list} className="flex flex-col gap-2">
               {thread.map((m, i) => (
                 <motion.div
                   key={m.id}
-                  layout="position"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
+                  initial={{ opacity: 0, y: m.id < 4 ? 10 : 0, scale: m.id < 4 ? 1 : 0.96 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  style={{ transformOrigin: m.from === "you" ? "100% 100%" : "0% 100%" }}
                   transition={{ type: "spring", stiffness: 420, damping: 34, delay: m.id < 4 ? 0.35 + i * 0.45 : 0 }}
                 >
-                  <Bubble text={m.text} from={m.from === "you" ? "you" : "dime"} tone={m.tone} instant className={m.from === "tejal" && !m.tone ? "!bg-oat !shadow-none" : "!shadow-none"} />
+                  <Bubble
+                    text={m.text}
+                    from={m.from === "you" ? "you" : "dime"}
+                    tone={m.tone}
+                    instant
+                    still
+                    className={m.from === "tejal" && !m.tone ? "!bg-oat !shadow-none" : "!shadow-none"}
+                  />
                 </motion.div>
               ))}
-              {typing && (
-                <motion.div key="typing" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="w-fit rounded-[14px] rounded-tl-[4px] bg-oat px-4 py-3.5">
-                  <span className="flex gap-1">
-                    {[0, 1, 2].map((d) => (
-                      <motion.span key={d} className="h-1.5 w-1.5 rounded-full bg-ink-3" animate={{ y: [0, -3, 0] }} transition={{ duration: 0.6, repeat: Infinity, delay: d * 0.12 }} />
-                    ))}
-                  </span>
-                </motion.div>
-              )}
-            </AnimatePresence>
+              {typing && <TypingBubble className="bg-oat" />}
+            </div>
           </div>
 
           {/* The reply box changes with the question */}

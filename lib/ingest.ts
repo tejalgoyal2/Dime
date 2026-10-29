@@ -3,8 +3,8 @@ import { z } from "zod/v4";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { checkAiBudget, checkRateLimit, getRequestIp } from "@/lib/rate-limit";
 import { apiError } from "@/lib/api-error";
-import { getGeminiModel, PARSE_SAFETY_SETTINGS } from "@/lib/gemini";
-import { withRetry } from "@/lib/gemini-retry";
+import { ask, parseJson } from "@/lib/gemini";
+import { learnFromHistory, LIFE_LEGO_RULES } from "@/lib/life-lego";
 import { ISO_DATE } from "@/lib/dates";
 import { createExpenseSchema } from "@/lib/schemas/expense";
 import { sha256Hex } from "@/lib/tokens";
@@ -48,8 +48,9 @@ If is_purchase=true, return:
 - item_name: what was bought or the merchant, cleaned up and title-cased ("STARBUCKS #1234 TORONTO" -> "Starbucks"). If the amount was not CAD, append the original like "Netflix (15.49 USD)".
 - amount: number in CAD. Convert approximately if needed (1 USD = 1.4 CAD, 1 INR = 0.016 CAD, 1 EUR = 1.5 CAD).
 - category: short, like Food, Groceries, Transport, Shopping, Subscriptions, Bills, Health, Entertainment, Travel.
-- type: "Need" or "Want".
+- type: "Need" or "Want" (see below).
 - emoji: one emoji.
+${LIFE_LEGO_RULES}
 
 Today is ${today}.${sender ? `\nSender: ${sender.replace(/[\r\n"<>]/g, " ")}` : ""}
 <message>
@@ -118,11 +119,9 @@ export async function logMessage(userId: string, bucket: string, body: NonNullab
   const budget = await checkAiBudget(userId);
   if (!budget.allowed) return apiError("That's enough for today. Dime's AI budget resets tomorrow.", "RATE_LIMITED", 429, budget.retryAfter);
 
-  const model = getGeminiModel(apiKey, PARSE_SAFETY_SETTINGS);
-  const result = await withRetry(() => model.generateContent(prompt(text, sender, today)));
   let parsedAi: unknown;
   try {
-    parsedAi = JSON.parse(result.response.text().replace(/```(?:json)?|```/g, "").trim());
+    parsedAi = parseJson(await ask(apiKey, prompt(text, sender, today), { json: true, parse: true }));
   } catch {
     return apiError("Couldn't read that message", "AI_PARSE_ERROR", 422);
   }
@@ -130,11 +129,13 @@ export async function logMessage(userId: string, bucket: string, body: NonNullab
   if (!ai.success) return apiError("Couldn't read that message", "AI_PARSE_ERROR", 422);
   if (!ai.data.is_purchase) return done("ignored");
 
+  // Same merchant as before? Sort it the way you sorted it last time.
+  const [sorted] = await learnFromHistory(admin, userId, [ai.data]);
   const expense = createExpenseSchema.safeParse({
-    item_name: ai.data.item_name,
-    amount: ai.data.amount,
-    category: ai.data.category,
-    type: ai.data.type,
+    item_name: sorted.item_name,
+    amount: sorted.amount,
+    category: sorted.category,
+    type: sorted.type,
     date: today,
     emoji: ai.data.emoji ?? null,
   });

@@ -204,6 +204,9 @@
 html {
   -webkit-tap-highlight-color: transparent;
   background: var(--oat);
+  /* Keep the scrollbar's space when a tray locks scrolling, so the page
+     never jumps sideways as one opens. */
+  scrollbar-gutter: stable;
 }
 
 body {
@@ -345,3 +348,61 @@ input[type="number"] {
     transform: scale(0.4);
   }
 }
+
+/* iMessage-style typing dots: a wave of light, and a slow breath. */
+.typing-dot {
+  display: block;
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--ink-3);
+  animation: typing-wave 1.2s ease-in-out infinite;
+}
+.typing-dot:nth-child(2) { animation-delay: 0.15s; }
+.typing-dot:nth-child(3) { animation-delay: 0.3s; }
+@keyframes typing-wave {
+  0%, 60%, 100% { opacity: 0.35; transform: translateY(0); }
+  30% { opacity: 1; transform: translateY(-2px); }
+}
+.typing-bubble { animation: typing-breathe 2.4s ease-in-out infinite; }
+@keyframes typing-breathe {
+  0%, 100% { scale: 1; }
+  50% { scale: 1.03; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .typing-dot, .typing-bubble { animation: none; }
+  .typing-dot { opacity: 0.6; }
+}
+
+/* The cash bill: the note pops in, the spray flicks outward once. */
+.cash-burst .cash-note {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: cash-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+.cash-burst .cash-spray {
+  transform-box: view-box;
+  transform-origin: 16px 16px;
+  animation: cash-spray 0.55s ease-out both;
+}
+@keyframes cash-pop {
+  from { scale: 0.4; rotate: -24deg; opacity: 0; }
+  to { scale: 1; rotate: 0deg; opacity: 1; }
+}
+@keyframes cash-spray {
+  from { scale: 0.3; opacity: 0; }
+  60% { opacity: 1; }
+  to { scale: 1; opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cash-burst .cash-note, .cash-burst .cash-spray { animation: none; }
+}
+
+/* 6-7: the bubble does the hands. */
+.six-seven { animation: six-seven 0.9s ease-in-out 2; transform-origin: 30% 100%; }
+@keyframes six-seven {
+  0%, 100% { rotate: 0deg; }
+  25% { rotate: -3deg; translate: 0 -2px; }
+  75% { rotate: 3deg; translate: 0 2px; }
+}
+@media (prefers-reduced-motion: reduce) { .six-seven { animation: none; } }

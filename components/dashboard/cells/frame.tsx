@@ -1,6 +1,7 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { Pills } from "@/components/ui/pills";
+
 
 // The surface a cell sits on. Cells aren't all the same card: a receipt is
 // paper, the club card is blue, the rest sit on the oat panel.
@@ -51,23 +52,13 @@ export function Segmented<T extends string>({
   id: string;
 }) {
   return (
-    <div role="tablist" className="flex rounded-[8px] bg-oat p-1 text-[13px] font-semibold">
-      {options.map((o) => (
-        <button
-          key={o.value}
-          role="tab"
-          aria-selected={value === o.value}
-          onClick={() => onChange(o.value)}
-          className={`relative rounded-[8px] px-3 py-1 transition-colors ${value === o.value ? "text-paper" : "text-ink-2 hover:text-ink"}`}
-        >
-          {value === o.value && <SegmentMarker id={id} />}
-          <span className="relative">{o.label}</span>
-        </button>
-      ))}
-    </div>
+    <Pills
+      label={id}
+      value={value}
+      options={options}
+      onChange={onChange}
+      className="rounded-[8px] bg-oat p-1 text-[13px] font-semibold"
+      buttonClassName="rounded-[8px] px-3 py-1"
+    />
   );
-}
-
-function SegmentMarker({ id }: { id: string }) {
-  return <motion.span layoutId={`seg-${id}`} className="absolute inset-0 rounded-[8px] bg-ink" transition={{ type: "spring", stiffness: 420, damping: 34 }} />;
 }

@@ -96,7 +96,9 @@ function Panel({ initial, onClose, onEdit }: { initial: string; onClose: () => v
   }, [hasMore, limit]);
 
   async function flip(e: ExpenseRow) {
-    if (!(await updateExpense(e.id, { type: e.type === "Want" ? "Need" : "Want" }))) toast("Couldn't change that one", "error");
+    const type = e.type === "Want" ? "Need" : "Want";
+    if (!(await updateExpense(e.id, { type }))) toast("Couldn't change that one", "error");
+    else toast(`Got it. ${e.item_name} goes in ${type === "Want" ? "Lego" : "Life"} from now on.`);
   }
 
   return (

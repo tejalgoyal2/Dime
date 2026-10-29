@@ -4,8 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { checkAiBudget, checkRateLimit, getRequestIp } from "@/lib/rate-limit";
 import { isValidOrigin } from "@/lib/origin-check";
 import { apiError } from "@/lib/api-error";
-import { withRetry } from "@/lib/gemini-retry";
-import { getGeminiModel } from "@/lib/gemini";
+import { ask, plain } from "@/lib/gemini";
 
 export async function POST(request: NextRequest) {
   try {
@@ -62,13 +61,12 @@ ${expenseSummary}
 
 CONTEXT: The user is in Canada. All amounts are in Canadian Dollars (CAD). Never use the Rupee symbol (₹). Use '$'. Even if speaking Hinglish, keep the currency Canadian.
 
-Write a short, sarcastic, funny 'Performance Review' in Hinglish (Indian/English mix).
+Write a short, sarcastic, funny roast of this month in Hinglish (Indian/English mix), like a friend's brutally honest "performance review".
 Roast the user for their bad financial decisions, specifically pointing out 'Wants' or high amounts.
-Keep it under 60 words. Be brutal but funny.`;
+Keep it under 60 words. Be brutal but funny, never mean about who they are.
+Plain text only: no markdown, no asterisks, no title or heading, no quotation marks around it.`;
 
-    const model = getGeminiModel(apiKey);
-    const result = await withRetry(() => model.generateContent(prompt));
-    const roast = result.response.text().trim();
+    const roast = plain(await ask(apiKey, prompt));
 
     return NextResponse.json({ roast });
   } catch (error: unknown) {

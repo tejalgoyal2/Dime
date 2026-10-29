@@ -4,8 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { checkAiBudget, checkRateLimit, getRequestIp } from "@/lib/rate-limit";
 import { isValidOrigin } from "@/lib/origin-check";
 import { apiError } from "@/lib/api-error";
-import { withRetry } from "@/lib/gemini-retry";
-import { getGeminiModel } from "@/lib/gemini";
+import { ask, parseJson } from "@/lib/gemini";
 
 export async function POST(request: NextRequest) {
   try {
@@ -73,11 +72,7 @@ Return a JSON object with this EXACT structure (no markdown, just raw JSON):
     "advice": "Short advice on managing these subscriptions."
 }`;
 
-    const model = getGeminiModel(apiKey);
-    const result = await withRetry(() => model.generateContent(prompt));
-    const text = result.response.text();
-    const cleaned = text.replace(/```json\n?|```\n?/g, "").trim();
-    const data = JSON.parse(cleaned);
+    const data = parseJson(await ask(apiKey, prompt, { json: true }));
 
     return NextResponse.json(data);
   } catch (error: unknown) {
