@@ -55,7 +55,7 @@ It's the rewrite of [WalletRIP](https://github.com/tejalgoyal2/WalletRIP), my fi
 
 Dime has a tiny API so you can log without opening the app: tap your phone to pay, forward a bank text, or ask Siri. It logs quietly and replies with nothing, the way a good friend takes a hint.
 
-**Full setup (iPhone, Android and everything else): [docs/auto-log.md](docs/auto-log.md)**
+**Full setup (iPhone, Android and everything else): [docs/auto-log.md](docs/auto-log.md)**. Curious how the rest works? [docs/under-the-hood.md](docs/under-the-hood.md).
 
 The short version:
 
