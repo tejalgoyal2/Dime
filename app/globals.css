@@ -306,6 +306,20 @@ input[type="number"] {
   padding: 14px 16px !important;
 }
 
+/* The page's side margins: 16px on phones, 24px on tablets, 40px on
+   desktop, and never under a notch (landscape phones). */
+.gutter {
+  --gutter: 16px;
+  padding-left: max(var(--gutter), env(safe-area-inset-left));
+  padding-right: max(var(--gutter), env(safe-area-inset-right));
+}
+@media (min-width: 640px) {
+  .gutter { --gutter: 24px; }
+}
+@media (min-width: 1024px) {
+  .gutter { --gutter: 40px; }
+}
+
 .scrollbar-none {
   scrollbar-width: none;
 }
@@ -476,9 +490,15 @@ input[type="number"] {
 }
 
 
-/* The translate toggle nudges when you hover a Hinglish message. */
-*:hover > .translate-toggle:not([aria-pressed="true"]),
-*:hover > * > .translate-toggle:not([aria-pressed="true"]) { color: var(--lego); }
+/* The translate toggle nudges when you hover a Hinglish message. Touch
+   screens can't hover, so there it just wears the nudge colour. */
+@media (hover: hover) {
+  *:hover > .translate-toggle:not([aria-pressed="true"]),
+  *:hover > * > .translate-toggle:not([aria-pressed="true"]) { color: var(--lego); }
+}
+@media (hover: none) {
+  .translate-toggle:not([aria-pressed="true"]) { color: var(--lego); }
+}
 .word-roll { display: inline-block; animation: word-roll 0.32s var(--spring-bubble, cubic-bezier(0.22, 1, 0.36, 1)) both; }
 @keyframes word-roll { from { opacity: 0; translate: 0 70%; } }
 /* A Hinglish line swapping to English (or back) settles in softly. */

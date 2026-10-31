@@ -104,7 +104,7 @@ export function CommandMenu({
   return (
     <AnimatePresence>
       {open && (
-        <div className="fixed inset-0 z-[60] flex items-start justify-center pt-[14vh]">
+        <div className="fixed inset-0 z-[60] flex items-start justify-center pt-[max(16px,env(safe-area-inset-top))] sm:pt-[14vh]">
           <motion.div
             className="absolute inset-0 bg-[#0d0d0f]/30 dark:bg-black/60"
             initial={{ opacity: 0 }}
@@ -126,9 +126,9 @@ export function CommandMenu({
                 value={q}
                 onValueChange={setQ}
                 placeholder="Log “lunch 14”, search “coffee”, or type a command…"
-                className="h-14 w-full border-b border-line bg-transparent px-5 text-[17px] font-medium outline-none placeholder:text-ink-3"
+                className="h-14 w-full border-b border-line bg-transparent px-4 text-[17px] font-medium outline-none placeholder:text-ink-3 sm:px-5"
               />
-              <Command.List className="max-h-[52vh] overflow-y-auto p-2">
+              <Command.List className="max-h-[min(52vh,calc(100dvh-180px))] overflow-y-auto overscroll-contain p-2">
                 <Command.Empty className="px-3 py-6 text-center text-[14px] text-ink-3">Nothing here. Try a number to log it.</Command.Empty>
 
                 {hasAmount && (
@@ -148,7 +148,7 @@ export function CommandMenu({
                         <span className={`h-2 w-2 rounded-full ${e.type === "Want" ? "bg-lego" : "bg-life"}`} />
                         <span className="min-w-0 flex-1 truncate">{e.item_name}</span>
                         <span className="text-[13px] text-ink-3">{format(parseISO(e.date), "d MMM")}</span>
-                        <span className="w-20 text-right font-semibold">{money(e.amount)}</span>
+                        <span className="w-20 shrink-0 text-right font-semibold">{money(e.amount)}</span>
                       </Command.Item>
                     ))}
                     <Command.Item value="see-all" onSelect={run(() => onHistory(q.trim()))} className={`${item} text-ink-2`}>
@@ -167,7 +167,7 @@ export function CommandMenu({
                   </Command.Group>
                 )}
               </Command.List>
-              <div className="flex gap-4 border-t border-line px-5 py-2.5 text-[12px] font-medium text-ink-3">
+              <div className="flex gap-4 border-t border-line px-5 py-2.5 text-[12px] font-medium text-ink-3 pointer-coarse:hidden">
                 <span>↑↓ to move</span>
                 <span>↵ to pick</span>
                 <span>esc to close</span>

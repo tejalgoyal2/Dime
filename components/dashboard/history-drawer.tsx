@@ -54,7 +54,8 @@ function Panel({ initial, onClose, onEdit }: { initial: string; onClose: () => v
   }
 
   useEffect(() => {
-    input.current?.focus();
+    // On touch, don't throw a keyboard over the list you came to read.
+    if (!matchMedia("(pointer: coarse)").matches) input.current?.focus();
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     window.addEventListener("keydown", onKey);
     const prev = document.body.style.overflow;
@@ -120,13 +121,14 @@ function Panel({ initial, onClose, onEdit }: { initial: string; onClose: () => v
         animate={{ x: 0 }}
         exit={{ x: "100%" }}
         transition={DRAWER}
-        className="absolute inset-y-3 right-3 flex w-[min(520px,calc(100%-24px))] flex-col overflow-hidden rounded-[14px] bg-paper shadow-lift"
+        className="absolute bottom-[max(8px,env(safe-area-inset-bottom))] right-2 top-[max(8px,env(safe-area-inset-top))] flex w-[min(520px,calc(100%-16px))] flex-col overflow-hidden rounded-[14px] bg-paper shadow-lift sm:bottom-3 sm:right-3 sm:top-3 sm:w-[min(520px,calc(100%-24px))]"
       >
-        <header className="border-b border-line px-6 pb-4 pt-5">
+        <header className="border-b border-line px-4 pb-4 pt-4 sm:px-6 sm:pt-5">
           <div className="flex items-center justify-between">
             <h2 className="text-[19px] font-semibold tracking-[-0.01em]">Everything</h2>
-            <button onClick={onClose} aria-label="Close" className="h-8 rounded-[8px] px-2.5 text-[13px] font-semibold text-ink-2 hover:bg-oat hover:text-ink">
-              Esc
+            <button onClick={onClose} aria-label="Close" className="h-8 rounded-[8px] px-2.5 text-[13px] font-semibold text-ink-2 hover:bg-oat hover:text-ink pointer-coarse:-mr-1 pointer-coarse:h-9 pointer-coarse:bg-oat">
+              <span className="pointer-coarse:hidden">Esc</span>
+              <span className="hidden pointer-coarse:inline">Done</span>
             </button>
           </div>
           <input
@@ -153,7 +155,7 @@ function Panel({ initial, onClose, onEdit }: { initial: string; onClose: () => v
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto px-6 pb-6">
+        <div className="flex-1 overflow-y-auto overscroll-contain px-4 pb-6 sm:px-6">
           {months.length === 0 && <p className="pt-10 text-center text-[15px] text-ink-3">Nothing matches that.</p>}
           {months.map((m) => (
             <section key={m.key}>
@@ -164,14 +166,14 @@ function Panel({ initial, onClose, onEdit }: { initial: string; onClose: () => v
               <ul>
                 {m.items.map((e) => (
                   <li key={e.id} className="group flex items-center gap-3 rounded-[8px] px-2 py-2 -mx-2 hover:bg-oat">
-                    <span className="w-14 shrink-0 text-[12px] font-medium text-ink-3">{format(parseISO(e.date), "EEE d")}</span>
+                    <span className="w-12 shrink-0 text-[12px] font-medium text-ink-3 sm:w-14">{format(parseISO(e.date), "EEE d")}</span>
                     <TypeCoin type={e.type} onFlip={() => flip(e)} />
                     <button onClick={() => onEdit(e)} className="min-w-0 flex-1 truncate text-left text-[15px] font-medium">
                       {e.item_name}
                       <span className="ml-2 text-[12px] font-medium text-ink-3">{e.category}</span>
                     </button>
                     {e.amount >= BIG_SPEND && <CashBill size={20} />}
-                    <span className="text-[15px] font-semibold">{money(e.amount)}</span>
+                    <span className="shrink-0 text-[15px] font-semibold">{money(e.amount)}</span>
                   </li>
                 ))}
               </ul>

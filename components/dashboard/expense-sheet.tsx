@@ -49,13 +49,13 @@ function SheetBody({ expense, onClose }: { expense: ExpenseRow; onClose: () => v
   }
 
   const field =
-    "w-full rounded-[8px] bg-sunken px-4 py-3 text-[15px] text-ink outline-none ring-ink/0 transition-shadow placeholder:text-ink-3 focus:ring-2 focus:ring-life";
+    "w-full rounded-[8px] bg-sunken px-4 py-3 text-[15px] text-ink outline-none ring-ink/0 transition-shadow placeholder:text-ink-3 focus:ring-2 focus:ring-life pointer-coarse:text-[16px]";
 
   return (
     <form onSubmit={save} className="space-y-3">
       <div className="pb-2">
         <input name="item_name" defaultValue={expense.item_name} required maxLength={200} aria-label="Name"
-          className="w-full bg-transparent text-[26px] font-semibold tracking-[-0.02em] text-ink outline-none" />
+          className="w-full bg-transparent text-[22px] font-semibold tracking-[-0.02em] text-ink outline-none sm:text-[26px]" />
         <div className="flex items-baseline text-ink-2">
           <span className="text-[19px]">$</span>
           <input name="amount" type="number" step="0.01" min="0.01" defaultValue={expense.amount} required aria-label="Amount"

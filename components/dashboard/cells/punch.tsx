@@ -42,11 +42,11 @@ export function PunchCell() {
       title="Dime club"
       aside={
         <div className="flex items-center gap-1 rounded-[8px] bg-panel p-0.5 text-[13px] font-semibold">
-          <button aria-label="Fewer days" onClick={() => setGoal(Math.max(1, g - 1))} disabled={g <= 1} className="h-6 w-6 rounded-[8px] hover:bg-line disabled:opacity-30">
+          <button aria-label="Fewer days" onClick={() => setGoal(Math.max(1, g - 1))} disabled={g <= 1} className="h-6 w-6 rounded-[8px] hover:bg-line disabled:opacity-30 pointer-coarse:h-8 pointer-coarse:w-8">
             −
           </button>
           <span className="w-[74px] text-center">{g}× a week</span>
-          <button aria-label="More days" onClick={() => setGoal(Math.min(7, g + 1))} disabled={g >= 7} className="h-6 w-6 rounded-[8px] hover:bg-line disabled:opacity-30">
+          <button aria-label="More days" onClick={() => setGoal(Math.min(7, g + 1))} disabled={g >= 7} className="h-6 w-6 rounded-[8px] hover:bg-line disabled:opacity-30 pointer-coarse:h-8 pointer-coarse:w-8">
             +
           </button>
         </div>

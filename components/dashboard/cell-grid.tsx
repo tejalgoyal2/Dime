@@ -7,7 +7,8 @@ import {
   DragOverlay,
   KeyboardSensor,
   MeasuringStrategy,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   pointerWithin,
   closestCenter,
   useSensor,
@@ -63,7 +64,9 @@ export function CellGrid({ layout, setLayout, arranging }: { layout: Layout; set
   const [active, setActive] = useState<{ id: CellType; w: number; h: number } | null>(null);
   const lastMove = useRef(0);
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
+    // On touch, press and hold to lift a card, so a swipe still scrolls the page.
+    useSensor(TouchSensor, { activationConstraint: { delay: 220, tolerance: 8 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
   const shown = layout.filter((c) => !c.hidden);
@@ -109,7 +112,7 @@ export function CellGrid({ layout, setLayout, arranging }: { layout: Layout; set
             transition={glide}
             className="overflow-hidden"
           >
-            <div className="flex flex-wrap items-center gap-2 pb-6">
+            <div className="flex flex-wrap items-center gap-2 pb-5 sm:pb-6">
               <span className="mr-1 text-[14px] font-semibold text-ink-2">{hidden.length ? "Put back:" : "Everything's out."}</span>
               {hidden.map((c) => (
                 <motion.button
@@ -140,7 +143,7 @@ export function CellGrid({ layout, setLayout, arranging }: { layout: Layout; set
         onDragCancel={() => setActive(null)}
       >
         <SortableContext items={shown.map((c) => c.id)}>
-          <div className="grid grid-cols-12 gap-6 [grid-auto-flow:row_dense]">
+          <div className="grid grid-cols-12 gap-4 [grid-auto-flow:row_dense] sm:gap-6">
             <AnimatePresence initial={false} mode="popLayout">
               {shown.map((c) => (
                 <Slot key={c.id} cell={c} arranging={arranging} lifted={active?.id === c.id} onSize={(size) => update(c.id, { size })} onHide={() => update(c.id, { hidden: true })} />
@@ -191,7 +194,7 @@ function Slot({
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.94, transition: { duration: 0.28, ease: [0.4, 0, 0.2, 1] } }}
       transition={glide}
-      className={`relative ${SPAN_CLASS[cell.size]} ${info.tall ? "xl:row-span-2" : ""} ${arranging ? "cursor-grab touch-none active:cursor-grabbing" : ""}`}
+      className={`relative ${SPAN_CLASS[cell.size]} ${info.tall ? "xl:row-span-2" : ""} ${arranging ? "cursor-grab touch-manipulation select-none [-webkit-touch-callout:none] active:cursor-grabbing" : ""}`}
       {...(arranging ? { ...attributes, ...listeners } : {})}
       aria-roledescription={arranging ? "movable card" : undefined}
       aria-label={arranging ? `${info.title}. Drag to move.` : undefined}
@@ -214,7 +217,10 @@ function Slot({
             <div
               className="absolute -top-4 left-1/2 flex -translate-x-1/2 items-center gap-1 whitespace-nowrap rounded-[8px] bg-ink p-1 text-[13px] font-semibold text-paper shadow-paper"
               onPointerDown={(e) => e.stopPropagation()}
+              onMouseDown={(e) => e.stopPropagation()}
+              onTouchStart={(e) => e.stopPropagation()}
             >
+              {/* Below md every card is full width, so sizes only show where they do something. */}
               {info.sizes.length > 1 &&
                 info.sizes.map((s) => (
                   <button
@@ -222,12 +228,12 @@ function Slot({
                     onClick={() => onSize(s)}
                     aria-label={`Make it ${SIZE_LABEL[s]} wide`}
                     aria-pressed={cell.size === s}
-                    className={`h-7 min-w-7 rounded-[8px] px-2 transition-colors ${cell.size === s ? "bg-paper text-ink" : "hover:bg-white/15"}`}
+                    className={`hidden h-7 min-w-7 rounded-[8px] px-2 transition-colors md:block ${cell.size === s ? "bg-paper text-ink" : "hover:bg-white/15"}`}
                   >
                     {SIZE_LABEL[s]}
                   </button>
                 ))}
-              <button onClick={onHide} className="h-7 rounded-[8px] px-2.5 hover:bg-white/15">
+              <button onClick={onHide} className="h-7 rounded-[8px] px-2.5 hover:bg-white/15 pointer-coarse:h-8 pointer-coarse:px-3.5">
                 Hide
               </button>
             </div>

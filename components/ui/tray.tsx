@@ -106,7 +106,7 @@ export function Tray({ open, onClose, title, icon, children, tone = "default" }:
               <button
                 onClick={onClose}
                 aria-label="Close"
-                className={`flex h-8 w-8 items-center justify-center rounded-[8px] transition-[transform,background-color] active:scale-90 ${
+                className={`flex h-8 w-8 items-center justify-center rounded-[8px] transition-[transform,background-color] active:scale-90 pointer-coarse:h-9 pointer-coarse:w-9 ${
                   inverse ? "bg-white/10 hover:bg-white/15" : "bg-sunken hover:bg-line-strong"
                 }`}
               >

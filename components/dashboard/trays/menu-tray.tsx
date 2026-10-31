@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronRight, ClipboardPaste, Download, LogOut, Target, Trash2, Zap } from "lucide-react";
+import { ChevronRight, ClipboardPaste, Download, LayoutGrid, LogOut, Target, Trash2, Zap } from "lucide-react";
 import { Pills } from "@/components/ui/pills";
 import { GlideOutline } from "@/components/ui/glide";
 import { ANIMALS, AnimalAvatar, type Animal } from "@/components/ui/animal";
@@ -24,6 +24,7 @@ function Row({
   onClick,
   danger,
   children,
+  className = "",
 }: {
   icon: React.ReactNode;
   label: string;
@@ -31,9 +32,10 @@ function Row({
   onClick?: () => void;
   danger?: boolean;
   children?: React.ReactNode;
+  className?: string;
 }) {
   return (
-    <li className="border-b border-line last:border-b-0">
+    <li className={`border-b border-line last:border-b-0 ${className}`}>
       <button
         onClick={onClick}
         className={`flex w-full items-center gap-3 px-4 py-3 text-left transition-colors active:bg-line ${danger ? "text-danger" : "text-ink"}`}
@@ -53,6 +55,7 @@ export function MenuTray({
   open,
   onClose,
   onOpen,
+  onArrange,
   callsign,
   animal,
   onAnimal,
@@ -60,6 +63,8 @@ export function MenuTray({
   open: boolean;
   onClose: () => void;
   onOpen: (t: TrayName) => void;
+  /** Phones keep Arrange in here, since the header has no room for it. */
+  onArrange?: () => void;
   callsign: string;
   animal: Animal;
   onAnimal: (a: Animal) => void;
@@ -124,6 +129,9 @@ export function MenuTray({
         <ul className="overflow-hidden rounded-[10px] bg-sunken">
           <Row icon={<Zap size={18} />} label="Auto-log" detail="Let bank texts log themselves" onClick={() => onOpen("autolog")} />
           <Row icon={<ClipboardPaste size={18} />} label="Paste a bunch" detail="Statements, lists, whatever" onClick={() => onOpen("import")} />
+          {onArrange && (
+            <Row icon={<LayoutGrid size={18} />} label="Arrange cards" detail="Move, hide or bring them back" onClick={onArrange} className="sm:hidden" />
+          )}
         </ul>
 
         <ul className="overflow-hidden rounded-[10px] bg-sunken">
@@ -148,7 +156,7 @@ export function MenuTray({
                   defaultValue={budget ?? ""}
                   placeholder="Monthly budget"
                   onBlur={(e) => e.currentTarget.form?.requestSubmit()}
-                  className="min-w-0 flex-1 bg-transparent py-1 text-[15px] font-medium outline-none placeholder:text-ink-3"
+                  className="min-w-0 flex-1 bg-transparent py-1 text-[15px] font-medium outline-none placeholder:text-ink-3 pointer-coarse:text-[16px]"
                 />
                 <span className="text-[13px] text-ink-3">↵</span>
               </form>
@@ -177,14 +185,14 @@ export function MenuTray({
                   onClick={() => setPalette(p.id)}
                   aria-pressed={shownPalette === p.id}
                   data-active={shownPalette === p.id}
-                  className="overflow-hidden rounded-[10px] text-left ring-2 ring-transparent transition-shadow duration-200 hover:ring-line-strong"
+                  className="flex flex-col overflow-hidden rounded-[10px] text-left ring-2 ring-transparent transition-shadow duration-200 hover:ring-line-strong"
                 >
                   {/* Each swatch shows the palette as it looks right now, day or night. */}
                   <span className="flex gap-1 p-2.5" style={{ background: p[theme === "dark" ? "night" : "day"].bg }}>
                     <span className="h-4 w-4 rounded-full" style={{ background: p[theme === "dark" ? "night" : "day"].life }} />
                     <span className="h-4 w-4 rounded-full" style={{ background: p[theme === "dark" ? "night" : "day"].lego }} />
                   </span>
-                  <span className="block bg-paper px-2.5 py-1.5 text-[12px] font-semibold text-ink">{p.name}</span>
+                  <span className="block flex-1 bg-paper px-2.5 py-1.5 text-[12px] font-semibold text-ink">{p.name}</span>
                 </button>
               ))}
             </div>
@@ -303,7 +311,7 @@ function AccountActions({ callsign, onSignOut }: { callsign: string; onSignOut: 
                   placeholder={callsign}
                   aria-label="Type your name to confirm"
                   disabled={step === "deleting"}
-                  className="mt-3 h-10 w-full rounded-[8px] bg-paper px-3 text-[15px] font-medium outline-none ring-2 ring-transparent transition-shadow focus:ring-danger"
+                  className="mt-3 h-10 w-full rounded-[8px] bg-paper px-3 text-[15px] font-medium outline-none ring-2 ring-transparent transition-shadow focus:ring-danger pointer-coarse:text-[16px]"
                 />
                 {error && <p className="mt-2 text-[13px] font-medium text-danger">{error}</p>}
                 <div className="mt-3 flex gap-2">

@@ -1,13 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { format, subMonths } from "date-fns";
 import { useExpenses } from "@/components/providers/expenses-provider";
 import { trendBars, type Bar, type Range } from "@/lib/stats";
 import { useBudget } from "@/lib/use-budget";
 import { Money, money } from "@/components/ui/money";
-import { Frame, Segmented } from "./frame";
+import { Frame, Segmented, useTapAway } from "./frame";
 
 const H = 190;
 const W = 1000;
@@ -63,6 +63,8 @@ export function TrendsCell() {
   const [range, setRange] = useState<Range>("month");
   const [view, setView] = useState<View>("bars");
   const [hover, setHover] = useState<number | null>(null);
+  const chart = useRef<HTMLDivElement>(null);
+  useTapAway(hover !== null, chart, useCallback(() => setHover(null), []));
   const now = new Date();
   const { bars, total, prevTotal } = trendBars(state.expenses, range, now);
   const prev = trendBars(state.expenses, range, previous(range, now)).bars;
@@ -109,9 +111,10 @@ export function TrendsCell() {
     <Frame
       title="How it's going"
       aside={
-        <div className="flex items-center gap-2">
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
           <Segmented
             id="trends-view"
+            fluid
             value={view}
             onChange={(v) => {
               setView(v);
@@ -125,6 +128,7 @@ export function TrendsCell() {
           />
           <Segmented
             id="trends"
+            fluid
             value={range}
             onChange={(r) => {
               setRange(r);
@@ -141,10 +145,10 @@ export function TrendsCell() {
     >
       <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-2">
         <div>
-          <Money value={big} className="text-[40px] font-semibold leading-none tracking-[-0.03em]" />
+          <Money value={big} className="text-[34px] font-semibold leading-none tracking-[-0.03em] sm:text-[40px]" />
           <p className="mt-1.5 text-[14px] text-ink-2">{shown ? (view === "running" ? `by ${when(shown)}` : when(shown)) : label}</p>
         </div>
-        <div className="pb-1 text-right text-[14px]">
+        <div className="pb-1 text-[14px] sm:text-right">
           {shown && view === "running" ? (
             <p className="text-ink-2">
               Last time by now: <span className="font-semibold text-ink">{money(runPrev[Math.min(hover!, runPrev.length - 1)] ?? 0, 0)}</span>
@@ -168,7 +172,7 @@ export function TrendsCell() {
         </div>
       </div>
 
-      <div className="relative mt-6" style={{ height: H + 26 }} onPointerLeave={() => setHover(null)}>
+      <div ref={chart} className="relative mt-6" style={{ height: H + 26 }} onPointerLeave={(e) => e.pointerType === "mouse" && setHover(null)}>
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
             key={view}
@@ -304,20 +308,29 @@ export function TrendsCell() {
           </motion.div>
         </AnimatePresence>
 
-        {/* Hover targets, one per bucket */}
-        <div className="absolute inset-x-0 bottom-[26px] top-0 flex">
+        {/* Hover targets, one per bucket. On touch, slide a finger along to scrub. */}
+        <div
+          className="absolute inset-x-0 bottom-[26px] top-0 flex touch-pan-y"
+          onPointerMove={(e) => {
+            if (e.pointerType === "mouse") return;
+            const r = e.currentTarget.getBoundingClientRect();
+            const i = Math.max(0, Math.min(n - 1, Math.floor(((e.clientX - r.left) / r.width) * n)));
+            if (!bars[i].future && i !== hover) setHover(i);
+          }}
+        >
           {bars.map((b, i) => (
             <span key={i} className="h-full flex-1" onPointerEnter={() => !b.future && setHover(i)} />
           ))}
         </div>
 
-        <div className="absolute inset-x-0 bottom-0 flex gap-[3px] text-[11px] font-medium text-ink-3">
+        <div className="absolute inset-x-0 bottom-0 flex h-4 gap-[3px] text-[11px] font-medium text-ink-3">
           {bars.map((b, i) => {
             const every = range === "month" ? 5 : range === "quarter" ? 3 : 1;
             const show = i === 0 || i === n - 1 || (i % every === 0 && i < n - 2) || b.now;
             return (
-              <span key={i} className={`flex-1 truncate text-center ${b.now ? "font-semibold text-ink" : ""}`}>
-                {show ? b.label : ""}
+              <span key={i} className={`relative min-w-0 flex-1 text-center ${b.now ? "font-semibold text-ink" : ""}`}>
+                {/* Centred on its bar, free to be wider than a thin phone bar. */}
+                {show ? <span className="absolute left-1/2 top-0 -translate-x-1/2 whitespace-nowrap">{b.label}</span> : ""}
               </span>
             );
           })}
@@ -325,7 +338,7 @@ export function TrendsCell() {
       </div>
 
       {view !== "bars" && (
-        <div className="mt-3 flex gap-5 text-[13px] font-medium text-ink-2">
+        <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-[13px] font-medium text-ink-2">
           {view === "lines" ? (
             <>
               <span className="flex items-center gap-1.5"><i className="h-[3px] w-4 rounded-full bg-life" /> Life</span>

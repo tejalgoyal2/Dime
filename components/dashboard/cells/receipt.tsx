@@ -40,7 +40,7 @@ export function ReceiptCell() {
 
   return (
     <div className="h-full [filter:drop-shadow(0_1px_1px_rgba(60,45,20,.06))_drop-shadow(0_12px_22px_rgba(60,45,20,.16))] dark:[filter:drop-shadow(0_14px_24px_rgba(0,0,0,.6))]">
-      <section className="torn flex h-full flex-col bg-paper px-6 pb-9 pt-6" style={{ borderRadius: "14px 14px 0 0" }}>
+      <section className="torn flex h-full flex-col bg-paper px-5 pb-9 pt-5 sm:px-6 sm:pt-6" style={{ borderRadius: "14px 14px 0 0" }}>
         <header className="flex items-baseline justify-between">
           <h2 className="text-[19px] font-semibold tracking-[-0.01em]">The receipt</h2>
           <span className="text-[13px] font-medium text-ink-3">{format(new Date(), "MMMM yyyy")}</span>
@@ -48,7 +48,7 @@ export function ReceiptCell() {
         <div className="mt-3 border-t-2 border-dashed border-line-strong" />
 
         <div className="relative min-h-[340px] flex-1">
-          <div className="scrollbar-none absolute inset-0 overflow-y-auto pb-2 pt-1 [mask-image:linear-gradient(to_bottom,transparent,#000_14px,#000_calc(100%-24px),transparent)]">
+          <div className="scrollbar-none absolute inset-0 overflow-y-auto overflow-x-hidden pb-2 pt-1 [mask-image:linear-gradient(to_bottom,transparent,#000_14px,#000_calc(100%-24px),transparent)]">
             {month.length === 0 ? (
               <p className="pt-10 text-center text-[15px] leading-relaxed text-ink-3">
                 Nothing printed yet.
@@ -85,11 +85,11 @@ export function ReceiptCell() {
             <span className="leader" />
             <span className="font-semibold text-lego">{money(lego)}</span>
           </div>
-          <div className="mt-4 flex items-center justify-between">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-ink-3">
+          <div className="mt-4 flex items-center justify-between gap-3">
+            <p className="min-w-0 text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-3 sm:tracking-[0.2em]">
               {month.length} {month.length === 1 ? "item" : "items"} · no refunds
             </p>
-            <button onClick={() => openHistory()} className="rounded-[8px] px-2 py-1 text-[13px] font-semibold text-ink-2 hover:bg-oat hover:text-ink">
+            <button onClick={() => openHistory()} className="shrink-0 whitespace-nowrap rounded-[8px] px-2 py-1 text-[13px] font-semibold text-ink-2 hover:bg-oat hover:text-ink pointer-coarse:-mr-2 pointer-coarse:py-2">
               See everything →
             </button>
           </div>
@@ -151,7 +151,7 @@ function Line({ e }: { e: ExpenseRow }) {
           onClick={remove}
           aria-label={`Delete ${e.item_name}`}
           // Its space is always reserved, so showing it never shoves the row sideways.
-          className="ml-1 w-5 shrink-0 text-[18px] leading-none text-ink-3 opacity-0 transition-[opacity,color] duration-200 hover:text-danger group-hover:opacity-100 focus-visible:opacity-100"
+          className="ml-1 w-5 shrink-0 text-[18px] leading-none text-ink-3 opacity-0 transition-[opacity,color] duration-200 hover:text-danger group-hover:opacity-100 focus-visible:opacity-100 pointer-coarse:-my-2 pointer-coarse:w-8 pointer-coarse:self-stretch pointer-coarse:py-2 pointer-coarse:opacity-45"
         >
           ×
         </button>

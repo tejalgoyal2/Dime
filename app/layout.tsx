@@ -46,6 +46,8 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
+  // Draw under the notch and home bar; edges pad themselves with safe-area insets.
+  viewportFit: "cover",
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#ececea" },
     { media: "(prefers-color-scheme: dark)", color: "#111112" },

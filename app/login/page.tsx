@@ -281,20 +281,20 @@ export default function LoginPage() {
 
   return (
     <main className="flex min-h-dvh flex-col bg-oat">
-      <header className="mx-auto flex w-full max-w-[1200px] items-center justify-between px-10 py-6">
+      <header className="gutter mx-auto flex w-full max-w-[1200px] items-center justify-between py-4 sm:py-6">
         <Wordmark />
         <CoinToggle />
       </header>
 
-      <section className="mx-auto grid w-full max-w-[1200px] flex-1 grid-cols-12 items-center gap-10 px-10 pb-10">
-        <div className="col-span-12 lg:col-span-6">
-          <h1 className="rise text-[54px] font-semibold leading-[1.04] tracking-[-0.035em]"
+      <section className="gutter mx-auto grid w-full max-w-[1200px] flex-1 grid-cols-1 items-center gap-7 pb-8 sm:gap-10 sm:pb-10 lg:grid-cols-12">
+        <div className="lg:col-span-6">
+          <h1 className="rise text-[40px] font-semibold leading-[1.04] tracking-[-0.035em] sm:text-[54px]"
           >
             Every cent has a story.
             <br />
             <span className="text-ink-3">Usually a bad one.</span>
           </h1>
-          <p style={{ "--y": "10px", "--d": "0.1s" } as React.CSSProperties} className="rise mt-6 max-w-[460px] text-[18px] leading-relaxed text-ink-2"
+          <p style={{ "--y": "10px", "--d": "0.1s" } as React.CSSProperties} className="rise mt-4 max-w-[460px] text-[16px] leading-relaxed text-ink-2 sm:mt-6 sm:text-[18px]"
           >
             Text it what you spent, like you&apos;d text a friend. It sorts everything into{" "}
             <span className="font-semibold text-life">Life</span> (you needed it) and <span className="font-semibold text-lego">Lego</span> (you
@@ -306,9 +306,9 @@ export default function LoginPage() {
         {/* The conversation */}
         <div
           style={{ "--y": "16px", "--d": "0.15s" } as React.CSSProperties}
-          className="rise col-span-12 flex h-[600px] flex-col overflow-hidden rounded-[14px] bg-paper shadow-paper lg:col-span-5 lg:col-start-8"
+          className="rise flex h-[clamp(420px,calc(100dvh-150px),540px)] flex-col overflow-hidden rounded-[14px] bg-paper shadow-paper sm:h-[600px] lg:col-span-5 lg:col-start-8"
         >
-          <div className="flex items-center gap-3 border-b border-line px-5 py-3.5">
+          <div className="flex items-center gap-3 border-b border-line px-4 py-3 sm:px-5 sm:py-3.5">
             <TejalFace size={40} />
             <div className="leading-tight">
               <p className="text-[15px] font-semibold">Tejal</p>
@@ -316,7 +316,7 @@ export default function LoginPage() {
             </div>
           </div>
 
-          <div ref={scroller} className="scrollbar-none flex flex-1 flex-col overflow-y-auto px-5 py-5">
+          <div ref={scroller} className="scrollbar-none flex flex-1 flex-col overflow-y-auto overscroll-contain px-4 py-4 sm:px-5 sm:py-5">
             <div className="mt-auto" />
             <div ref={list} className="flex flex-col gap-2">
               {thread.map((m, i) => (
@@ -405,7 +405,7 @@ export default function LoginPage() {
                         type="button"
                         onMouseDown={(e) => e.preventDefault()}
                         onClick={() => setShow((s) => !s)}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 rounded-[8px] px-2.5 py-1 text-[13px] font-semibold text-ink-2 hover:bg-panel hover:text-ink"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 rounded-[8px] px-2.5 py-1 text-[13px] font-semibold text-ink-2 hover:bg-panel hover:text-ink pointer-coarse:py-2"
                       >
                         {show ? "hide" : "show"}
                       </button>
@@ -432,13 +432,13 @@ export default function LoginPage() {
             {(step === "name" || step === "secret" || step === "invite") && (
               <div className="mt-2 flex justify-between gap-3 px-1 text-[13px] font-medium text-ink-3">
                 {step === "secret" && mode === "in" ? (
-                  <button type="button" onClick={back} className="transition-colors hover:text-ink">
-                    Not {handle}? Change name
+                  <button type="button" onClick={back} className="min-w-0 truncate text-left transition-colors hover:text-ink pointer-coarse:-my-2 pointer-coarse:py-2">
+                    Not {handle}?<span className="max-[400px]:hidden"> Change name</span>
                   </button>
                 ) : (
                   <span />
                 )}
-                <button type="button" onClick={switchMode} className="transition-colors hover:text-ink">
+                <button type="button" onClick={switchMode} className="shrink-0 whitespace-nowrap text-right transition-colors hover:text-ink pointer-coarse:-my-2 pointer-coarse:py-2">
                   {mode === "in" ? "New here? Make an account" : "Have an account? Sign in"}
                 </button>
               </div>
@@ -447,7 +447,7 @@ export default function LoginPage() {
         </div>
       </section>
 
-      <footer className="mx-auto flex w-full max-w-[1200px] items-center justify-between px-10 pb-6 text-[13px] text-ink-3">
+      <footer className="gutter mx-auto flex w-full max-w-[1200px] flex-col gap-2 pb-[max(24px,env(safe-area-inset-bottom))] text-[13px] text-ink-3 sm:flex-row sm:items-center sm:justify-between">
         <span>No email. No phone. Just a name and a secret.</span>
         <span className="flex gap-5">
           <a href="https://github.com/tejalgoyal2/Dime" target="_blank" rel="noopener noreferrer" className="hover:text-ink">GitHub</a>
@@ -513,8 +513,9 @@ function HoverTranslate() {
   const [en, setEn] = useState(false);
   return (
     <span
-      onPointerEnter={() => setEn(true)}
-      onPointerLeave={() => setEn(false)}
+      onPointerEnter={(e) => e.pointerType === "mouse" && setEn(true)}
+      onPointerLeave={(e) => e.pointerType === "mouse" && setEn(false)}
+      onClick={(e) => e.nativeEvent instanceof PointerEvent && e.nativeEvent.pointerType !== "mouse" && setEn((v) => !v)}
       className="pointer-events-auto underline decoration-dotted decoration-line-strong underline-offset-4"
     >
       <ScrambleText text={en ? "“Croissant for $7? Bro, are you in Paris or something?”" : "“Croissant for $7? Bhai, Paris mein ho kya?”"} />

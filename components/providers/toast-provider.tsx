@@ -37,6 +37,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
         theme={theme}
         gap={10}
         offset={28}
+        mobileOffset={{ bottom: "calc(16px + env(safe-area-inset-bottom))", left: 16, right: 16 }}
         visibleToasts={4}
         toastOptions={{
           className: "dime-toast",

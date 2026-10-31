@@ -54,19 +54,21 @@ export function CheckupCell() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.45, delay: i * 0.06, ease: EASE }}
-                className="rounded-[12px] bg-paper p-4 shadow-paper"
+                // An odd one out spans two columns, so the grid never ends on a lonely tile.
+                className="rounded-[12px] bg-paper p-3.5 shadow-paper last:odd:col-span-2 sm:p-4 xl:last:odd:col-span-1"
               >
-                <p className="flex items-center gap-2 text-[13px] font-medium text-ink-2">
-                  <span className={`h-2 w-2 rounded-full ${DOT[v.status]}`} />
+                <p className="flex items-start gap-2 text-[13px] font-medium text-ink-2">
+                  {/* Centred on the first line, so a label that wraps keeps its dot up top. */}
+                  <span className={`mt-[calc(0.725em-4px)] h-2 w-2 shrink-0 rounded-full ${DOT[v.status]}`} />
                   {v.label}
                 </p>
-                <p className="mt-2 truncate text-[24px] font-semibold tracking-[-0.02em]">{v.value}</p>
+                <p className="mt-2 truncate text-[21px] font-semibold tracking-[-0.02em] sm:text-[24px]">{v.value}</p>
                 <p className="mt-1 text-[13px] leading-snug text-ink-3">{v.note}</p>
               </motion.div>
             ))}
           </div>
 
-          <div className="mt-5 rounded-[12px] bg-oat p-5">
+          <div className="mt-5 rounded-[12px] bg-oat p-4 sm:p-5">
             <AnimatePresence mode="wait" initial={false}>
               {advice ? (
                 <motion.div key="advice" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, transition: { duration: 0.2 } }}>
@@ -116,7 +118,7 @@ export function CheckupCell() {
                   </p>
                   <button
                     onClick={getAdvice}
-                    className="h-10 rounded-[10px] bg-ink px-5 text-[14px] font-semibold text-paper transition-transform duration-200 hover:scale-[1.02] active:scale-95"
+                    className="h-10 w-full rounded-[10px] bg-ink px-5 text-[14px] font-semibold text-paper transition-transform duration-200 hover:scale-[1.02] active:scale-95 sm:w-auto"
                   >
                     Get my advice
                   </button>

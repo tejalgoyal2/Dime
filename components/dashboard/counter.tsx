@@ -21,6 +21,11 @@ import { TypeCoin } from "./cells/type-coin";
 const PLACEHOLDERS = ["coffee & croissant 7", "uber home 18", "groceries at freshco 84", "netflix 16.99", "2am pizza 22, again", "gym 50", "bubble tea 8"];
 
 const noop = () => () => {};
+const subscribeCoarse = (cb: () => void) => {
+  const m = matchMedia("(pointer: coarse)");
+  m.addEventListener("change", cb);
+  return () => m.removeEventListener("change", cb);
+};
 
 type Reply = { you: string; items: ExpenseRow[]; text: string; en?: string; zh?: string; tone?: "lego"; egg?: boolean } | null;
 
@@ -59,6 +64,8 @@ export function Counter({ callsign, arranging, onLogged }: { callsign: string; a
   const inputRef = useRef<HTMLInputElement>(null);
   const mirrorRef = useRef<HTMLDivElement>(null);
   const hour = useSyncExternalStore(noop, () => new Date().getHours(), () => -1);
+  // Touch screens drag cards with a press and hold.
+  const touch = useSyncExternalStore(subscribeCoarse, () => matchMedia("(pointer: coarse)").matches, () => false);
   const name = callsign.charAt(0).toUpperCase() + callsign.slice(1);
 
   useEffect(() => {
@@ -89,7 +96,9 @@ export function Counter({ callsign, arranging, onLogged }: { callsign: string; a
   // What Dime says and how he looks, most specific first.
   let line = greeting(hour, name);
   if (arranging) {
-    line = "Redecorating? Go wild. Drag any card by any part of it, I'll keep everything safe.";
+    line = touch
+      ? "Redecorating? Go wild. Press and hold any card, then drag it. I'll keep everything safe."
+      : "Redecorating? Go wild. Drag any card by any part of it, I'll keep everything safe.";
   } else if (reply && !input) {
     line = inLang(lang, reply.text, reply.en, reply.zh);
   } else if (focused && pasted && input) {
@@ -213,12 +222,12 @@ export function Counter({ callsign, arranging, onLogged }: { callsign: string; a
   const pace = budget ? Math.min(1, new Date().getDate() / new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()) : 0;
 
   return (
-    <section className="grid grid-cols-12 items-start gap-x-10 gap-y-8">
+    <section className="grid grid-cols-12 items-start gap-y-8 lg:gap-x-10">
       {rain > 0 && <CashRain key={rain} onDone={stopRain} />}
       {/* The conversation with Dime */}
       <div className="col-span-12 lg:col-span-7">
         <div className="max-w-[640px]">
-          <div className="flex min-h-[132px] flex-col justify-end gap-2.5">
+          <div className="flex min-h-[112px] flex-col justify-end gap-2.5 sm:min-h-[132px]">
             <Speaker />
             <AnimatePresence initial={false} mode="popLayout">
               {reply && !input && !busy && (
@@ -236,11 +245,11 @@ export function Counter({ callsign, arranging, onLogged }: { callsign: string; a
                   {reply && !input && !busy && reply.items.length > 0 && (
                     <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-line pt-3">
                       {reply.items.map((x) => (
-                        <span key={x.id} className="inline-flex items-center gap-2.5 rounded-[8px] bg-oat py-1.5 pl-2.5 pr-3 text-[14px]">
-                          <TypeCoin type={x.type} onFlip={() => flip(x)} label />
+                        <span key={x.id} className="inline-flex min-w-0 max-w-full items-center gap-2.5 rounded-[8px] bg-oat py-1.5 pl-2.5 pr-3 text-[14px]">
+                          <TypeCoin type={x.type} onFlip={() => flip(x)} label className="pointer-coarse:-my-1.5 pointer-coarse:py-1.5" />
                           {x.amount >= BIG_SPEND && <CashBill size={24} burst />}
-                          <span className="font-medium">{x.item_name}</span>
-                          <span className="font-semibold">{money(x.amount)}</span>
+                          <span className="min-w-0 truncate font-medium">{x.item_name}</span>
+                          <span className="shrink-0 font-semibold">{money(x.amount)}</span>
                         </span>
                       ))}
                       <button onClick={undo} className="rounded-[8px] px-2.5 py-1.5 text-[14px] font-semibold text-ink-2 hover:bg-oat hover:text-ink">
@@ -260,7 +269,7 @@ export function Counter({ callsign, arranging, onLogged }: { callsign: string; a
             </AnimatePresence>
           </div>
 
-          <form onSubmit={submit} className="relative mt-5">
+          <form onSubmit={submit} className="relative mt-4 sm:mt-5">
             <input
               ref={inputRef}
               value={input}
@@ -284,7 +293,7 @@ export function Counter({ callsign, arranging, onLogged }: { callsign: string; a
               maxLength={2000}
               enterKeyHint="send"
               aria-label="What did you spend on?"
-              className={`relative h-16 w-full rounded-[10px] bg-paper pl-6 ${other ? "pr-[230px]" : "pr-[170px]"} text-[20px] font-medium shadow-paper caret-ink outline-none ring-2 ring-transparent transition-shadow focus:ring-ink ${
+              className={`relative h-14 w-full rounded-[10px] bg-paper pl-4 sm:h-16 sm:pl-6 ${other ? "pr-[178px] sm:pr-[230px]" : "pr-[118px] sm:pr-[170px]"} text-[17px] font-medium shadow-paper sm:text-[20px] caret-ink outline-none ring-2 ring-transparent transition-shadow focus:ring-ink ${
                 input ? "text-transparent" : "text-ink"
               }`}
             />
@@ -293,7 +302,7 @@ export function Counter({ callsign, arranging, onLogged }: { callsign: string; a
               <div
                 ref={mirrorRef}
                 aria-hidden
-                className={`pointer-events-none absolute inset-y-0 left-0 ${other ? "right-[230px]" : "right-[170px]"} flex items-center overflow-hidden whitespace-pre pl-6 text-[20px] font-medium text-ink`}
+                className={`pointer-events-none absolute inset-y-0 left-0 ${other ? "right-[178px] sm:right-[230px]" : "right-[118px] sm:right-[170px]"} flex items-center overflow-hidden whitespace-pre pl-4 text-[17px] font-medium text-ink sm:pl-6 sm:text-[20px]`}
               >
                 {amount ? (
                   <>
@@ -316,7 +325,7 @@ export function Counter({ callsign, arranging, onLogged }: { callsign: string; a
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: 8, transition: LEAVE_QUICK }}
                   transition={{ duration: 0.22, ease: EASE_OUT }}
-                  className="absolute right-[64px] top-1/2 flex -translate-y-1/2 items-center gap-1.5 text-[14px] font-semibold"
+                  className="absolute right-[58px] top-1/2 flex -translate-y-1/2 items-center gap-1 text-[14px] font-semibold sm:right-[64px] sm:gap-1.5"
                 >
                   {other && (
                     <button
@@ -341,14 +350,14 @@ export function Counter({ callsign, arranging, onLogged }: { callsign: string; a
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -8 }}
                   transition={{ duration: 0.25 }}
-                  className="pointer-events-none absolute inset-y-0 left-6 flex items-center text-[20px] font-medium text-ink-3"
+                  className="pointer-events-none absolute inset-y-0 left-4 right-16 flex items-center overflow-hidden whitespace-nowrap text-[17px] font-medium text-ink-3 sm:left-6 sm:right-auto sm:text-[20px]"
                 >
                   {PLACEHOLDERS[ph]}
                 </motion.span>
               </AnimatePresence>
             )}
             {!input && !focused && (
-              <kbd className="pointer-events-none absolute right-[76px] top-1/2 -translate-y-1/2 rounded-[8px] border border-line-strong px-2 py-0.5 text-[13px] font-semibold text-ink-3">
+              <kbd className="pointer-events-none absolute right-[76px] top-1/2 hidden -translate-y-1/2 rounded-[8px] border border-line-strong px-2 py-0.5 text-[13px] font-semibold text-ink-3 sm:block pointer-coarse:hidden">
                 /
               </kbd>
             )}
@@ -359,7 +368,7 @@ export function Counter({ callsign, arranging, onLogged }: { callsign: string; a
               animate={{ scale: input.trim() || busy ? 1 : 0.85, opacity: input.trim() || busy ? 1 : 0.35 }}
               whileTap={{ scale: 0.9 }}
               transition={{ type: "spring", stiffness: 500, damping: 26 }}
-              className="absolute right-2.5 top-2.5 flex h-11 w-11 items-center justify-center rounded-[8px] bg-ink text-paper"
+              className="absolute right-1.5 top-1.5 flex h-11 w-11 items-center justify-center rounded-[8px] bg-ink text-paper sm:right-2.5 sm:top-2.5"
             >
               {busy ? (
                 <motion.span className="h-4 w-4 rounded-full border-2 border-paper/40 border-t-paper" animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 0.8, ease: "linear" }} />
@@ -377,7 +386,7 @@ export function Counter({ callsign, arranging, onLogged }: { callsign: string; a
       {/* The month so far */}
       <div className="col-span-12 lg:col-span-5 lg:pl-6">
         <p className="text-[15px] font-medium text-ink-2">{format(new Date(), "MMMM")} so far</p>
-        <Money value={s.total} className="mt-1 block text-[64px] font-semibold leading-[1.02] tracking-[-0.035em]" />
+        <Money value={s.total} className="mt-1 block text-[52px] font-semibold leading-[1.02] tracking-[-0.035em] sm:text-[64px]" />
 
         <div className="relative mt-4 h-3.5 overflow-hidden rounded-full bg-panel">
           <motion.div
@@ -391,7 +400,7 @@ export function Counter({ callsign, arranging, onLogged }: { callsign: string; a
           </motion.div>
           {budget && <span className="absolute inset-y-0 w-[3px] rounded-[8px] bg-ink" style={{ left: `calc(${pace * 100}% - 1.5px)` }} title="Where you'd be at an even pace" />}
         </div>
-        <div className="mt-2 flex justify-between text-[13px] font-medium">
+        <div className="mt-2 flex justify-between gap-3 text-[13px] font-medium">
           <span>
             <span className="text-life">Life {money(s.needs, 0)}</span>
             <span className="text-ink-3"> · </span>
@@ -404,7 +413,7 @@ export function Counter({ callsign, arranging, onLogged }: { callsign: string; a
           ) : null}
         </div>
 
-        <p className="mt-5 max-w-[400px] text-[16px] leading-snug text-ink-2">
+        <p className="mt-4 max-w-[400px] text-[15px] leading-snug text-ink-2 sm:mt-5 sm:text-[16px]">
           {budget && safe ? (
             safe.left >= 0 ? (
               <>

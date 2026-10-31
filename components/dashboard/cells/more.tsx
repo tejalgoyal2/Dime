@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { CashBill } from "@/components/ui/cash-bill";
 import { BIG_SPEND } from "@/lib/amounts";
 import { motion } from "framer-motion";
@@ -9,7 +9,7 @@ import { useExpenses } from "@/components/providers/expenses-provider";
 import { localISODate } from "@/lib/dates";
 import { money } from "@/components/ui/money";
 import { useDashboard } from "../context";
-import { Frame } from "./frame";
+import { Frame, useTapAway } from "./frame";
 
 const spring = { type: "spring", stiffness: 240, damping: 30 } as const;
 
@@ -39,9 +39,9 @@ export function HitsCell() {
                     <span className="min-w-0 flex-1 truncate font-medium group-hover:underline group-hover:decoration-line-strong group-hover:underline-offset-4">
                       {e.item_name}
                     </span>
-                    <span className="text-[12px] text-ink-3">{format(parseISO(e.date), "d MMM")}</span>
+                    <span className="shrink-0 text-[12px] text-ink-3">{format(parseISO(e.date), "d MMM")}</span>
                     {e.amount >= BIG_SPEND && <CashBill size={18} className="self-center" />}
-                    <span className="w-20 text-right font-semibold">{money(e.amount, 0)}</span>
+                    <span className="w-[72px] shrink-0 text-right font-semibold sm:w-20">{money(e.amount, 0)}</span>
                   </span>
                   <span className="ml-7 mt-1.5 block h-1.5 overflow-hidden rounded-full bg-oat">
                     <motion.span
@@ -70,6 +70,8 @@ const HOURS = ["12a", "", "", "3a", "", "", "6a", "", "", "9a", "", "", "12p", "
 export function ClockCell() {
   const { state } = useExpenses();
   const [hover, setHover] = useState<number | null>(null);
+  const chart = useRef<HTMLDivElement>(null);
+  useTapAway(hover !== null, chart, useCallback(() => setHover(null), []));
   const from = new Date();
   from.setDate(from.getDate() - 60);
   const since = localISODate(from);
@@ -99,7 +101,17 @@ export function ClockCell() {
       title="When you spend"
       aside={<span className="text-[13px] text-ink-3">{shown ? `${fmtHour(hover!)}: ${money(shown.life + shown.lego, 0)}` : "last 60 days"}</span>}
     >
-      <div className="flex h-[120px] items-end gap-[3px]" onPointerLeave={() => setHover(null)}>
+      <div
+        ref={chart}
+        className="flex h-[120px] touch-pan-y items-end gap-[3px]"
+        onPointerLeave={(e) => e.pointerType === "mouse" && setHover(null)}
+        onPointerMove={(e) => {
+          // Touch: slide along the hours to scrub.
+          if (e.pointerType === "mouse") return;
+          const r = e.currentTarget.getBoundingClientRect();
+          setHover(Math.max(0, Math.min(23, Math.floor(((e.clientX - r.left) / r.width) * 24))));
+        }}
+      >
         {hours.map((b, i) => {
           const v = b.life + b.lego;
           return (
@@ -189,7 +201,7 @@ export function SparksCell() {
             const pace = c.values[5] / Math.max(dayShare, 0.1);
             const change = avg ? (pace - avg) / avg : null;
             return (
-              <li key={name} className="grid grid-cols-[1fr_88px_64px] items-center gap-3">
+              <li key={name} className="grid grid-cols-[1fr_72px_60px] items-center gap-3 sm:grid-cols-[1fr_88px_64px]">
                 <span className="min-w-0">
                   <span className="block truncate text-[15px] font-medium">{name}</span>
                   <span className="text-[12px] text-ink-3">{money(c.values[5], 0)} this month</span>

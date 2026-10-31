@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { format } from "date-fns";
 import { useExpenses } from "@/components/providers/expenses-provider";
 import { localISODate } from "@/lib/dates";
 import { money } from "@/components/ui/money";
-import { Frame } from "./frame";
+import { Frame, useTapAway } from "./frame";
 
 const WEEKS = 52;
 const CELL = 11;
@@ -27,8 +27,9 @@ function shade(d: Day, cuts: number[]) {
 /** A year of spending, one square a day, like a contributions graph. */
 export function YearCell() {
   const { state } = useExpenses();
-  const [hover, setHover] = useState<{ d: Day; x: number; y: number } | null>(null);
+  const [hover, setHover] = useState<{ d: Day; x: number; y: number; row: number } | null>(null);
   const box = useRef<HTMLDivElement>(null);
+  useTapAway(hover !== null, box, useCallback(() => setHover(null), []));
 
   const { weeks, cuts, months, logged, legoFree, biggest } = useMemo(() => {
     const today = new Date();
@@ -100,7 +101,7 @@ export function YearCell() {
         </span>
       }
     >
-      <div ref={scroller} className="scrollbar-none relative overflow-x-auto pb-1" onPointerLeave={() => setHover(null)}>
+      <div ref={scroller} className="scrollbar-none relative overflow-x-auto overscroll-x-contain pb-1" onPointerLeave={(e) => e.pointerType === "mouse" && setHover(null)}>
         <div ref={box} className="relative" style={{ width: width + 28 }}>
           <div className="relative ml-7 h-5 text-[11px] font-medium text-ink-3">
             {months.map((m) => (
@@ -129,7 +130,7 @@ export function YearCell() {
                         if (d.future) return;
                         const r = e.currentTarget.getBoundingClientRect();
                         const b = box.current?.getBoundingClientRect();
-                        setHover({ d, x: r.left - (b?.left ?? 0) + CELL / 2, y: r.top - (b?.top ?? 0) });
+                        setHover({ d, x: r.left - (b?.left ?? 0) + CELL / 2, y: r.top - (b?.top ?? 0), row: i });
                       }}
                     />
                   ))}
@@ -146,7 +147,10 @@ export function YearCell() {
                 animate={{ opacity: 1, y: 0, left: hover.x, top: hover.y }}
                 exit={{ opacity: 0 }}
                 transition={{ type: "spring", stiffness: 600, damping: 40 }}
-                className="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-[calc(100%+8px)] whitespace-nowrap rounded-[8px] bg-ink px-3 py-2 text-[13px] text-paper shadow-lift"
+                // Kept inside the scroller: hugs the near edge at either end, and drops below the top rows.
+                className={`pointer-events-none absolute z-10 whitespace-nowrap rounded-[8px] bg-ink px-3 py-2 text-[13px] text-paper shadow-lift ${
+                  hover.x < 100 ? "-translate-x-3" : hover.x > width + 28 - 100 ? "-translate-x-[calc(100%-12px)]" : "-translate-x-1/2"
+                } ${hover.row < 3 ? "translate-y-[19px]" : "-translate-y-[calc(100%+8px)]"}`}
               >
                 <span className="font-semibold">{hover.d.total ? money(hover.d.total) : "Nothing spent"}</span>
                 <span className="opacity-70"> · {format(new Date(hover.d.date + "T12:00:00"), "EEE d MMM")}</span>
@@ -157,19 +161,20 @@ export function YearCell() {
         </div>
       </div>
 
-      <div className="mt-5 grid grid-cols-3 gap-4 border-t border-line pt-4 text-[14px]">
+      <div className="mt-5 grid grid-cols-3 gap-3 border-t border-line pt-4 text-[13px] sm:gap-4 sm:text-[14px]">
         <p>
-          <span className="block text-[22px] font-semibold tracking-[-0.02em]">{logged}</span>
+          <span className="block text-[19px] font-semibold tracking-[-0.02em] sm:text-[22px]">{logged}</span>
           <span className="text-ink-2">days with spending</span>
         </p>
         <p>
-          <span className="block text-[22px] font-semibold tracking-[-0.02em]">{legoFree.len} days</span>
+          <span className="block text-[19px] font-semibold tracking-[-0.02em] sm:text-[22px]">{legoFree.len} days</span>
           <span className="text-ink-2">longest run with no Lego</span>
         </p>
         <p>
-          <span className="block text-[22px] font-semibold tracking-[-0.02em]">{biggest?.total ? money(biggest.total, 0) : "—"}</span>
+          <span className="block text-[19px] font-semibold tracking-[-0.02em] sm:text-[22px]">{biggest?.total ? money(biggest.total, 0) : "—"}</span>
           <span className="text-ink-2">
-            biggest day{biggest?.total ? `, ${format(new Date(biggest.date + "T12:00:00"), "d MMM")}` : ""}
+            biggest day{biggest?.total ? ", " : ""}
+            {biggest?.total ? <span className="whitespace-nowrap">{format(new Date(biggest.date + "T12:00:00"), "d MMM")}</span> : null}
           </span>
         </p>
       </div>

@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { Pills } from "@/components/ui/pills";
 
 
@@ -25,10 +26,10 @@ export function Frame({
         ? "inverse"
         : "bg-panel shadow-edge";
   return (
-    <section className={`flex h-full flex-col rounded-[14px] p-6 ${bg} ${className}`}>
+    <section className={`flex h-full flex-col rounded-[14px] p-5 sm:p-6 ${bg} ${className}`}>
       <div className="flex h-full flex-col">
         {(title || aside) && (
-          <header className="mb-4 flex items-baseline justify-between gap-4">
+          <header className="mb-4 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
             {title && <h2 className="text-[19px] font-semibold tracking-[-0.01em] text-ink">{title}</h2>}
             {aside}
           </header>
@@ -45,11 +46,14 @@ export function Segmented<T extends string>({
   options,
   onChange,
   id,
+  fluid = false,
 }: {
   value: T;
   options: { value: T; label: string }[];
   onChange: (v: T) => void;
   id: string;
+  /** Stretch to the full width on phones, options sharing it equally. */
+  fluid?: boolean;
 }) {
   return (
     <Pills
@@ -57,8 +61,23 @@ export function Segmented<T extends string>({
       value={value}
       options={options}
       onChange={onChange}
-      className="rounded-[8px] bg-oat p-1 text-[13px] font-semibold"
-      buttonClassName="rounded-[8px] px-3 py-1"
+      className={`rounded-[8px] bg-oat p-1 text-[13px] font-semibold ${fluid ? "w-full sm:w-auto" : ""}`}
+      buttonClassName={`rounded-[8px] px-3 py-1 pointer-coarse:py-1.5 ${fluid ? "flex-1 sm:flex-none" : ""}`}
     />
   );
+}
+
+/**
+ * Touch has no hover, so a tapped point stays shown until you tap somewhere
+ * else. Mouse hovers clear themselves on leave as before.
+ */
+export function useTapAway(active: boolean, inside: React.RefObject<HTMLElement | null>, clear: () => void) {
+  useEffect(() => {
+    if (!active) return;
+    const onDown = (e: PointerEvent) => {
+      if (e.pointerType !== "mouse" && !inside.current?.contains(e.target as Node)) clear();
+    };
+    window.addEventListener("pointerdown", onDown);
+    return () => window.removeEventListener("pointerdown", onDown);
+  }, [active, inside, clear]);
 }

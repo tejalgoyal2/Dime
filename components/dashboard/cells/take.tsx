@@ -105,14 +105,14 @@ export function TakeCell() {
         <button
           onClick={() => ask("read")}
           disabled={!!busy}
-          className="h-9 rounded-[8px] bg-ink px-4 text-[14px] font-semibold text-paper transition-transform active:scale-95 disabled:opacity-60"
+          className="h-9 rounded-[8px] bg-ink px-4 text-[14px] font-semibold text-paper transition-transform active:scale-95 disabled:opacity-60 max-sm:h-10 max-sm:flex-1"
         >
           {busy === "read" ? "Reading…" : "Read my month"}
         </button>
         <button
           onClick={() => ask("roast")}
           disabled={!!busy}
-          className="h-9 rounded-[8px] border-2 border-lego px-4 text-[14px] font-semibold text-lego transition-[transform,background-color,color] hover:bg-lego hover:text-white active:scale-95 disabled:opacity-60"
+          className="h-9 rounded-[8px] border-2 border-lego px-4 text-[14px] font-semibold text-lego transition-[transform,background-color,color] hover:bg-lego hover:text-white active:scale-95 disabled:opacity-60 max-sm:h-10 max-sm:flex-1"
         >
           {busy === "roast" ? "Warming up…" : "Roast me"}
         </button>

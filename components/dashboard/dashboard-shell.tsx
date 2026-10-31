@@ -79,30 +79,31 @@ function Shell({ callsign, savedAnimal }: { callsign: string; savedAnimal: strin
     <DashboardContext.Provider value={{ fresh, edit: setEditing, arranging, openHistory }}>
       <div className="min-h-dvh bg-oat">
         <header className="sticky top-0 z-40 bg-oat">
-          <div className="mx-auto flex max-w-[1320px] items-center gap-3 px-10 py-5">
+          <div className="gutter mx-auto flex max-w-[1320px] items-center gap-2 py-3 sm:gap-3 sm:py-4 lg:py-5">
             <Wordmark />
             <button
               onClick={() => setCmd(true)}
-              className="group ml-10 flex h-11 w-[340px] items-center gap-3 rounded-[12px] bg-panel pl-4 pr-2 text-[15px] font-medium text-ink-3 shadow-edge transition-colors hover:text-ink-2"
+              aria-label="Search your spending"
+              className="group order-1 ml-auto flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] bg-panel text-[15px] font-medium text-ink-3 shadow-edge transition-colors hover:text-ink-2 sm:order-none sm:ml-6 sm:h-11 sm:w-[260px] sm:justify-start sm:gap-3 sm:rounded-[12px] sm:pl-4 sm:pr-2 lg:ml-10 lg:w-[340px]"
             >
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" className="shrink-0">
                 <circle cx="11" cy="11" r="7" />
                 <path d="m20 20-3.5-3.5" />
               </svg>
-              <span className="truncate">Search your spending</span>
+              <span className="hidden truncate sm:inline">Search your spending</span>
               {shortcut && (
-                <kbd className="ml-auto rounded-[8px] bg-oat px-2 py-1 font-sans text-[12px] font-semibold text-ink-3 transition-colors group-hover:text-ink-2">
+                <kbd className="ml-auto hidden shrink-0 whitespace-nowrap rounded-[8px] bg-oat px-2 py-1 font-sans text-[12px] font-semibold text-ink-3 transition-colors group-hover:text-ink-2 sm:block pointer-coarse:hidden">
                   {shortcut}
                 </kbd>
               )}
             </button>
-            <div className="ml-auto flex items-center gap-3">
+            <div className="order-2 flex items-center gap-2 sm:order-none sm:ml-auto sm:gap-3">
               <motion.button
                 onClick={() => setArranging((a) => !a)}
                 aria-pressed={arranging}
                 whileTap={{ scale: 0.95 }}
-                className={`h-10 rounded-[8px] px-5 text-[15px] font-semibold transition-colors ${
-                  arranging ? "bg-ink text-paper" : "text-ink-2 hover:bg-panel hover:text-ink"
+                className={`h-10 rounded-[8px] px-4 text-[15px] font-semibold transition-colors sm:px-5 ${
+                  arranging ? "bg-ink text-paper" : "hidden text-ink-2 hover:bg-panel hover:text-ink sm:block"
                 }`}
               >
                 {arranging ? "Done" : "Arrange"}
@@ -112,24 +113,24 @@ function Shell({ callsign, savedAnimal }: { callsign: string; savedAnimal: strin
                 onClick={() => setTray("menu")}
                 whileTap={{ scale: 0.92 }}
                 aria-label="Menu"
-                className="flex h-10 items-center gap-2 rounded-[8px] bg-panel pl-2 pr-4 text-[15px] font-semibold transition-colors hover:bg-line-strong"
+                className="flex h-10 items-center gap-2 rounded-[8px] bg-panel px-[5px] text-[15px] font-semibold transition-colors hover:bg-line-strong md:pl-2 md:pr-4"
               >
                 <AnimalAvatar animal={animal} size={30} />
-                {callsign}
+                <span className="hidden md:inline">{callsign}</span>
               </motion.button>
             </div>
           </div>
           <motion.div style={{ opacity: rule }} className="h-px bg-line-strong" />
         </header>
 
-        <main className="mx-auto max-w-[1320px] px-10 pb-24 pt-8">
+        <main className="gutter mx-auto max-w-[1320px] pb-16 pt-3 sm:pb-24 sm:pt-6 lg:pt-8">
           <Counter callsign={callsign} arranging={arranging} onLogged={markFresh} />
 
-          <div className="mt-16">
+          <div className="mt-10 sm:mt-14 lg:mt-16">
             {state.isLoading ? (
-              <div className="grid grid-cols-12 gap-6">
+              <div className="grid grid-cols-12 gap-4 sm:gap-6">
                 {[8, 4, 4, 4, 4].map((span, i) => (
-                  <div key={i} className={`h-[300px] animate-pulse rounded-[14px] bg-panel ${span === 8 ? "col-span-8" : "col-span-4"}`} />
+                  <div key={i} className={`h-[300px] animate-pulse rounded-[14px] bg-panel ${span === 8 ? "col-span-12 xl:col-span-8" : "col-span-12 md:col-span-6 xl:col-span-4"}`} />
                 ))}
               </div>
             ) : (
@@ -138,7 +139,7 @@ function Shell({ callsign, savedAnimal }: { callsign: string; savedAnimal: strin
           </div>
         </main>
 
-        <footer className="mx-auto flex max-w-[1320px] items-center justify-between px-10 pb-10 text-[13px] text-ink-3">
+        <footer className="gutter mx-auto flex max-w-[1320px] flex-col gap-2 pb-[max(40px,calc(env(safe-area-inset-bottom)+24px))] text-[13px] text-ink-3 sm:flex-row sm:items-center sm:justify-between">
           <span>Made with too much coffee. Your data is yours; nobody else sees it.</span>
           <span className="flex gap-5">
             <a href="https://github.com/tejalgoyal2/Dime" target="_blank" rel="noopener noreferrer" className="hover:text-ink">GitHub</a>
@@ -147,7 +148,18 @@ function Shell({ callsign, savedAnimal }: { callsign: string; savedAnimal: strin
         </footer>
       </div>
 
-      <MenuTray open={tray === "menu"} onClose={() => setTray(null)} onOpen={openFromMenu} callsign={callsign} animal={animal} onAnimal={setAnimal} />
+      <MenuTray
+        open={tray === "menu"}
+        onClose={() => setTray(null)}
+        onOpen={openFromMenu}
+        onArrange={() => {
+          setTray(null);
+          setArranging(true);
+        }}
+        callsign={callsign}
+        animal={animal}
+        onAnimal={setAnimal}
+      />
       <ImportTray open={tray === "import"} onClose={closeSub} />
       <AutologTray open={tray === "autolog"} onClose={closeSub} />
       <ExpenseSheet expense={editing} onClose={() => setEditing(null)} />

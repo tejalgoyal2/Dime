@@ -41,7 +41,7 @@ export function CategoriesCell() {
               <div className="flex items-baseline justify-between text-[15px]">
                 <span className="font-medium">
                   {c.name}
-                  <span className="ml-2 text-[13px] text-ink-3 opacity-0 transition-opacity group-hover:opacity-100">
+                  <span className="ml-2 text-[13px] text-ink-3 opacity-0 transition-opacity group-hover:opacity-100 pointer-coarse:opacity-100">
                     {c.n} {c.n === 1 ? "thing" : "things"}
                   </span>
                 </span>
