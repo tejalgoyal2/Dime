@@ -40,6 +40,12 @@ export function PunchCell() {
     <Frame
       surface="inverse"
       title="Dime club"
+      info={
+        <>
+          A punch card for <b>logging</b>, not spending. Every day you log something gets a punch. Reach your weekly goal (set it with − and +) to keep your
+          streak of weeks going. Logging regularly is what makes every other number here accurate.
+        </>
+      }
       aside={
         <div className="flex items-center gap-1 rounded-[8px] bg-panel p-0.5 text-[13px] font-semibold">
           <button aria-label="Fewer days" onClick={() => setGoal(Math.max(1, g - 1))} disabled={g <= 1} className="h-6 w-6 rounded-[8px] hover:bg-line disabled:opacity-30 pointer-coarse:h-8 pointer-coarse:w-8">

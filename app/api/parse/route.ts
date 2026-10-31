@@ -91,8 +91,9 @@ export async function POST(request: NextRequest) {
     const price = Number.isFinite(hinted) && hinted > 0 && hinted < 1e7 ? hinted : null;
 
     const tAi = Date.now();
-    const reply = parseJson(await ask(apiKey, buildPrompt(body, today, price), { json: true, parse: true }));
-    mark("ai", tAi);
+    let provider = "";
+    const reply = parseJson(await ask(apiKey, buildPrompt(body, today, price), { json: true, parse: true, onProvider: (p) => (provider = p) }));
+    marks.push(`ai;desc="${provider}";dur=${Date.now() - tAi}`);
     // Some models wrap the list in an object ({"items": [...]}); accept either.
     const parsed = Array.isArray(reply) ? reply : (Object.values((reply ?? {}) as object).find(Array.isArray) as unknown[] | undefined);
     if (!Array.isArray(parsed)) {

@@ -489,3 +489,9 @@ input[type="number"] {
 .fade-swap { animation: fade-swap 0.24s ease-out both; }
 @keyframes fade-swap { from { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .fade-swap { animation: none; } }
+
+/* The (i) explainer note: a quick, soft appearance. */
+.info-pop { animation: info-pop 0.18s cubic-bezier(0.22, 1, 0.36, 1) both; }
+@keyframes info-pop { from { opacity: 0; scale: 0.96; } }
+.info-pop b { color: var(--ink); font-weight: 600; }
+@media (prefers-reduced-motion: reduce) { .info-pop { animation: none; } }

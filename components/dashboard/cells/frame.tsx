@@ -2,18 +2,22 @@
 
 import { useEffect } from "react";
 import { Pills } from "@/components/ui/pills";
+import { InfoTip } from "@/components/ui/info-tip";
 
 
 // The surface a cell sits on. Cells aren't all the same card: a receipt is
 // paper, the club card is blue, the rest sit on the oat panel.
 export function Frame({
   title,
+  info,
   aside,
   surface = "panel",
   className = "",
   children,
 }: {
   title?: React.ReactNode;
+  /** A plain-words explanation, shown from a quiet (i) next to the title. */
+  info?: React.ReactNode;
   aside?: React.ReactNode;
   surface?: "panel" | "paper" | "inverse";
   className?: string;
@@ -30,7 +34,12 @@ export function Frame({
       <div className="flex h-full flex-col">
         {(title || aside) && (
           <header className="mb-4 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
-            {title && <h2 className="text-[19px] font-semibold tracking-[-0.01em] text-ink">{title}</h2>}
+            {title && (
+              <h2 className="flex items-center gap-1.5 text-[19px] font-semibold tracking-[-0.01em] text-ink">
+                {title}
+                {info && <InfoTip label={`About ${typeof title === "string" ? title : "this card"}`}>{info}</InfoTip>}
+              </h2>
+            )}
             {aside}
           </header>
         )}

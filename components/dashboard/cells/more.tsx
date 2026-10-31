@@ -25,7 +25,10 @@ export function HitsCell() {
   const max = top[0]?.amount ?? 1;
 
   return (
-    <Frame title="Biggest hits">
+    <Frame
+      title="Biggest hits"
+      info={<>Your five biggest single purchases this month, and how much of the month they add up to. A few big one-offs often matter more than daily coffees.</>}
+    >
       {top.length === 0 ? (
         <p className="text-[15px] text-ink-2">Your five biggest buys of the month will line up here.</p>
       ) : (
@@ -99,6 +102,12 @@ export function ClockCell() {
   return (
     <Frame
       title="When you spend"
+      info={
+        <>
+          The time of day you log purchases, over the last 60 days. Late-night buys are often impulse buys, so if a lot of your <b>Lego</b> happens after
+          9pm, that&apos;s worth knowing.
+        </>
+      }
       aside={<span className="text-[13px] text-ink-3">{shown ? `${fmtHour(hover!)}: ${money(shown.life + shown.lego, 0)}` : "last 60 days"}</span>}
     >
       <div
@@ -189,7 +198,15 @@ export function SparksCell() {
   const dayShare = now.getDate() / new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
 
   return (
-    <Frame title="Categories over time" aside={<span className="text-[13px] text-ink-3">6 months</span>}>
+    <Frame
+      title="Categories over time"
+      info={
+        <>
+          Each of your top categories over the last 6 months, as a tiny line. <b>▲</b> means this month is on pace to beat your usual month for it, <b>▼</b>{" "}
+          means less; &ldquo;usual&rdquo; means within 10%.
+        </>
+      }
+      aside={<span className="text-[13px] text-ink-3">6 months</span>}>
       {cats.length === 0 ? (
         <p className="text-[15px] text-ink-2">A few weeks of logging and each category gets its own little line.</p>
       ) : (

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
+import { LegoBrick, LifeCoin } from "@/components/ui/life-lego-icons";
 import { AnimatePresence, motion } from "framer-motion";
 import { format, subMonths } from "date-fns";
 import { useExpenses } from "@/components/providers/expenses-provider";
@@ -110,6 +111,25 @@ export function TrendsCell() {
   return (
     <Frame
       title="How it's going"
+      info={
+        view === "bars" ? (
+          <>
+            Each bar is one {range === "month" ? "day" : range === "quarter" ? "week" : "month"} of spending. The bottom part is <b>Life</b> (things you
+            needed), the top part is <b>Lego</b> (things you wanted). The dashed line is your usual {range === "month" ? "day" : range === "quarter" ? "week" : "month"}, so
+            bars above it cost more than normal. The outlined bar is now.
+          </>
+        ) : view === "lines" ? (
+          <>
+            Two lines: how much went to <b>Life</b> and to <b>Lego</b> over time.{range === "month" ? " Each point is smoothed over 3 days, so one big day doesn't hide the trend." : ""} When the Lego
+            line climbs above Life, your wants are outspending your needs.
+          </>
+        ) : (
+          <>
+            Your total so far, adding up as the {range} goes, against the same point last {range} (dashed). If you set a budget, the dotted line is an even
+            pace to stay within it: being above it means you&apos;re spending faster than the budget allows.
+          </>
+        )
+      }
       aside={
         <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
           <Segmented
@@ -349,12 +369,18 @@ export function TrendsCell() {
         </div>
       </div>
 
-      {view !== "bars" && (
+      {
         <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-[13px] font-medium text-ink-2">
-          {view === "lines" ? (
+          {view === "bars" ? (
             <>
-              <span className="flex items-center gap-1.5"><i className="h-[3px] w-4 rounded-full bg-life" /> Life</span>
-              <span className="flex items-center gap-1.5"><i className="h-[3px] w-4 rounded-full bg-lego" /> Lego</span>
+              <span className="flex items-center gap-1.5"><LifeCoin size={13} className="text-life" /> Life</span>
+              <span className="flex items-center gap-1.5"><LegoBrick size={14} className="text-lego" /> Lego</span>
+              <span className="flex items-center gap-1.5"><i className="h-0 w-4 border-t-2 border-dashed border-ink-3/60" /> Your usual {range === "year" ? "month" : range === "quarter" ? "week" : "day"}</span>
+            </>
+          ) : view === "lines" ? (
+            <>
+              <span className="flex items-center gap-1.5"><LifeCoin size={13} className="text-life" /> Life</span>
+              <span className="flex items-center gap-1.5"><LegoBrick size={14} className="text-lego" /> Lego</span>
               {range === "month" && <span className="text-ink-3">3-day average</span>}
             </>
           ) : (
@@ -365,7 +391,7 @@ export function TrendsCell() {
             </>
           )}
         </div>
-      )}
+      }
     </Frame>
   );
 }

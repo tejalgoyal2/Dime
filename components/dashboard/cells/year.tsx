@@ -89,6 +89,12 @@ export function YearCell() {
   return (
     <Frame
       title="A year of spending"
+      info={
+        <>
+          Every square is one day of the last year. <b>Darker means more spent</b> that day; empty means nothing logged. Use it to spot your expensive
+          seasons and your quiet stretches. Hover or tap a square for that day.
+        </>
+      }
       aside={
         <span className="flex items-center gap-1.5 text-[12px] font-medium text-ink-3">
           less

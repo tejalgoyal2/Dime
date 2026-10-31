@@ -56,7 +56,15 @@ export function SeesawCell() {
   }
 
   return (
-    <Frame title="Life vs Lego">
+    <Frame
+      title="Life vs Lego"
+      info={
+        <>
+          This month&apos;s <b>Life</b> (needs: rent, groceries, bills) on one side and <b>Lego</b> (wants: takeout, treats, gadgets) on the other. The
+          heavier side tips down. Needs are fine to be bigger; it&apos;s the wants that are worth watching.
+        </>
+      }
+    >
       <svg viewBox="0 0 320 140" className="w-full overflow-visible" role="img" aria-label={`Life ${Math.round((1 - share) * 100)}%, Lego ${Math.round(share * 100)}%`}>
         <path d="M160 96 L184 132 L136 132 Z" fill="var(--ink)" opacity={0.85} />
         <rect x={110} y={132} width={100} height={4} rx={2} fill="var(--line-strong)" />

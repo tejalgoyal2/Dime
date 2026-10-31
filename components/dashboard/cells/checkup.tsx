@@ -42,7 +42,16 @@ export function CheckupCell() {
   const saves = advice?.moves.reduce((s, m) => s + (m.saves ?? 0), 0) ?? 0;
 
   return (
-    <Frame title="Money check-up" aside={<span className="text-[13px] text-ink-3">last 3 months</span>}>
+    <Frame
+      title="Money check-up"
+      info={
+        <>
+          A quick health check of the last 3 months. <b>Pace</b>: where this month lands if you keep spending like this. <b>Lego share</b>: how much went to
+          wants; the popular 50/30/20 rule of thumb works out to keeping wants under about 40% of spending. <b>On repeat</b>: subscriptions and other
+          monthly charges. <b>Creeping up</b>: a category running well above its usual. <b>After 9pm</b>: how much of your Lego is late-night. General
+          guidance, not financial advice.
+        </>
+      } aside={<span className="text-[13px] text-ink-3">last 3 months</span>}>
       {!enough ? (
         <p className="text-[15px] text-ink-2">Log for a couple of weeks and I&apos;ll give you a proper check-up: your pace, your Lego share, what&apos;s on repeat, and what&apos;s creeping up.</p>
       ) : (

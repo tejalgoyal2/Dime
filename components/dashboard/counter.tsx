@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { InfoTip } from "@/components/ui/info-tip";
+import { LegoBrick, LifeCoin } from "@/components/ui/life-lego-icons";
 import { AnimatePresence, motion } from "framer-motion";
 import { EASE_OUT, LEAVE_QUICK } from "@/lib/motion";
 import { differenceInCalendarDays, format, parseISO } from "date-fns";
@@ -60,6 +62,7 @@ export function Counter({ callsign, arranging, onLogged }: { callsign: string; a
   const [lang, setLang] = useState<Lang>("orig");
   // Something big logged: its bill hops into the month total.
   const [rain, setRain] = useState(0);
+  const [flyAmount, setFlyAmount] = useState(0);
   const stopRain = useCallback(() => setRain(0), []);
   const inputRef = useRef<HTMLInputElement>(null);
   const mirrorRef = useRef<HTMLDivElement>(null);
@@ -177,7 +180,10 @@ export function Counter({ callsign, arranging, onLogged }: { callsign: string; a
       setInput("");
       setChosen(null);
       const egg = saved.some((x) => isSixSeven(x.amount));
-      if (saved.some((x) => x.amount >= BIG_SPEND)) setRain((n) => n + 1);
+      if (saved.some((x) => x.amount >= BIG_SPEND)) {
+        setFlyAmount(saved.reduce((t, x) => t + x.amount, 0));
+        setRain((n) => n + 1);
+      }
       setReply({ you: text, items: saved, text: egg ? "SIX SEVENNN 🤷 okay okay, logged." : comment || "Noted.", en: egg || !comment ? undefined : en, zh: egg || !comment ? undefined : zh, egg });
     } catch (err) {
       setReply({ you: text, items: [], text: err instanceof Error ? err.message : "Something broke on my side.", tone: "lego" });
@@ -229,7 +235,7 @@ export function Counter({ callsign, arranging, onLogged }: { callsign: string; a
 
   return (
     <section className="grid grid-cols-12 items-start gap-y-8 lg:gap-x-10">
-      {rain > 0 && <CashFly key={rain} onDone={stopRain} />}
+      {rain > 0 && <CashFly key={rain} amount={flyAmount} onDone={stopRain} />}
       {/* The conversation with Dime */}
       <div className="col-span-12 lg:col-span-7">
         <div className="max-w-[640px]">
@@ -395,7 +401,20 @@ export function Counter({ callsign, arranging, onLogged }: { callsign: string; a
 
       {/* The month so far */}
       <div className="col-span-12 lg:col-span-5 lg:pl-6">
-        <p className="text-[15px] font-medium text-ink-2">{format(new Date(), "MMMM")} so far</p>
+        <p className="flex items-center gap-1 text-[15px] font-medium text-ink-2">
+          {format(new Date(), "MMMM")} so far
+          <InfoTip label="About this month's numbers">
+            Everything you&apos;ve spent this month. The bar splits it into <b>Life</b> (needs) and <b>Lego</b> (wants).
+            {budget ? (
+              <>
+                {" "}With a budget, the bar fills toward it, and the thin mark is where you&apos;d be today at an even pace: past the mark means you&apos;re
+                spending faster than the budget allows. &ldquo;Safe to spend today&rdquo; is what&apos;s left for today if you want to end the month on budget.
+              </>
+            ) : (
+              <> Set a monthly budget and this also tells you what&apos;s safe to spend each day.</>
+            )}
+          </InfoTip>
+        </p>
         <div data-month-total className="mt-1 w-fit origin-left">
           <Money value={s.total} className="block text-[52px] font-semibold leading-[1.02] tracking-[-0.035em] sm:text-[64px]" />
         </div>
@@ -410,13 +429,21 @@ export function Counter({ callsign, arranging, onLogged }: { callsign: string; a
             <motion.span className="h-full bg-life" animate={{ flexGrow: s.needs }} transition={{ type: "spring", stiffness: 160, damping: 26 }} />
             <motion.span className="relative -ml-px h-full bg-lego" animate={{ flexGrow: s.wants }} transition={{ type: "spring", stiffness: 160, damping: 26 }} />
           </motion.div>
-          {budget && <span className="absolute inset-y-0 w-[3px] rounded-[8px] bg-ink" style={{ left: `calc(${pace * 100}% - 1.5px)` }} title="Where you'd be at an even pace" />}
+          {/* Where you'd be today if you spread the budget evenly. Pointless (and
+              easy to mistake for a glitch) in the last days of the month. */}
+          {budget && pace < 0.95 && (
+            <span
+              className="absolute inset-y-[3px] w-[2px] rounded-full bg-ink/50 mix-blend-normal"
+              style={{ left: `calc(${pace * 100}% - 1px)` }}
+              title="Even pace: where you'd be today if you spread your budget evenly over the month"
+            />
+          )}
         </div>
         <div className="mt-2 flex justify-between gap-3 text-[13px] font-medium">
           <span>
-            <span className="text-life">Life {money(s.needs, 0)}</span>
+            <span className="inline-flex items-center gap-1 text-life"><LifeCoin size={13} /> Life {money(s.needs, 0)}</span>
             <span className="text-ink-3"> · </span>
-            <span className="text-lego">Lego {money(s.wants, 0)}</span>
+            <span className="inline-flex items-center gap-1 text-lego"><LegoBrick size={14} /> Lego {money(s.wants, 0)}</span>
           </span>
           {budget && !editingBudget ? (
             <button onClick={() => setEditingBudget(true)} className="text-ink-3 underline decoration-dotted underline-offset-4 hover:text-ink" title="Change budget">

@@ -30,6 +30,8 @@ type AskOptions = {
   json?: boolean;
   /** Use the relaxed safety settings meant for parsing expenses. */
   parse?: boolean;
+  /** Told which provider answered ("groq" or "gemini"), for timing headers. */
+  onProvider?: (p: "groq" | "gemini") => void;
 };
 
 const statusOf = (e: unknown) => (e as { status?: number; code?: number })?.status ?? (e as { code?: number })?.code;
@@ -64,13 +66,17 @@ async function askGroq(prompt: string): Promise<string> {
 export async function ask(apiKey: string, prompt: string, opts: AskOptions = {}): Promise<string> {
   if (process.env.GROQ_API_KEY) {
     try {
-      return await askGroq(prompt);
+      const text = await askGroq(prompt);
+      opts.onProvider?.("groq");
+      return text;
     } catch (e) {
       console.warn("Groq failed, using Gemini:", e instanceof Error ? e.message : e);
       if (!apiKey) throw e;
     }
   }
-  return askGemini(apiKey, prompt, opts);
+  const text = await askGemini(apiKey, prompt, opts);
+  opts.onProvider?.("gemini");
+  return text;
 }
 
 async function askGemini(apiKey: string, prompt: string, { json = false, parse = false }: AskOptions = {}): Promise<string> {

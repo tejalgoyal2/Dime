@@ -40,7 +40,7 @@ export function TypeCoin({
       aria-label={onFlip ? `${name}, flip to ${lego ? "Life" : "Lego"}` : name}
       className={`group/coin inline-flex shrink-0 items-center gap-1.5 [perspective:200px] disabled:cursor-default ${className}`}
     >
-      <span className="relative block h-3.5 w-3.5">
+      <span className="relative block h-4 w-4">
         <motion.span
           key={`toss-${flips}`}
           className="relative block h-full w-full transition-[scale] duration-200 [transform-style:preserve-3d] group-enabled/coin:group-hover/coin:scale-125"
@@ -53,10 +53,10 @@ export function TypeCoin({
           }}
         >
           <span className="absolute inset-0 text-life [backface-visibility:hidden]">
-            <LifeCoin size={14} className="block" />
+            <LifeCoin size={16} className="block" />
           </span>
           <span className="absolute inset-0 text-lego [backface-visibility:hidden] [transform:rotateY(180deg)]">
-            <LegoBrick size={14} className="block" />
+            <LegoBrick size={16} className="block" />
           </span>
         </motion.span>
       </span>

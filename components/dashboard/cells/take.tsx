@@ -53,7 +53,15 @@ export function TakeCell() {
   }
 
   return (
-    <Frame title="Dime's take">
+    <Frame
+      title="Dime's take"
+      info={
+        <>
+          A look at your last 30 days. At first glance it shows the treat you buy most and what halving it would save. <b>Read my month</b> gives an
+          honest summary and one thing to try; <b>Roast me</b> says the same thing, rudely, in Hinglish (with a Translate button).
+        </>
+      }
+    >
       <div className="flex gap-4">
         <AnimatePresence mode="wait" initial={false}>
           <motion.div

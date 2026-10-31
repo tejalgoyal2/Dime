@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { InfoTip } from "@/components/ui/info-tip";
 import { CashBill } from "@/components/ui/cash-bill";
 import { BIG_SPEND } from "@/lib/amounts";
 import { AnimatePresence, motion } from "framer-motion";
@@ -42,7 +43,13 @@ export function ReceiptCell() {
     <div className="h-full [filter:drop-shadow(0_1px_1px_rgba(60,45,20,.06))_drop-shadow(0_12px_22px_rgba(60,45,20,.16))] dark:[filter:drop-shadow(0_14px_24px_rgba(0,0,0,.6))]">
       <section className="torn flex h-full flex-col bg-paper px-5 pb-9 pt-5 sm:px-6 sm:pt-6" style={{ borderRadius: "14px 14px 0 0" }}>
         <header className="flex items-baseline justify-between">
-          <h2 className="text-[19px] font-semibold tracking-[-0.01em]">The receipt</h2>
+          <h2 className="flex items-center gap-1.5 text-[19px] font-semibold tracking-[-0.01em]">
+            The receipt
+            <InfoTip label="About the receipt">
+              Everything you logged this month, newest first. The <b>coin</b> means Life (needed), the <b>brick</b> means Lego (wanted): tap it to switch.
+              Tap a name to edit it, or × to cross it out (you can undo). The green note marks buys of $50 or more.
+            </InfoTip>
+          </h2>
           <span className="text-[13px] font-medium text-ink-3">{format(new Date(), "MMMM yyyy")}</span>
         </header>
         <div className="mt-3 border-t-2 border-dashed border-line-strong" />

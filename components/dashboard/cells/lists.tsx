@@ -31,7 +31,7 @@ export function CategoriesCell() {
   const max = top[0]?.total ?? 1;
 
   return (
-    <Frame title="Where it goes">
+    <Frame title="Where it goes" info={<>This month&apos;s spending grouped by kind (food, transport, bills…). The longest bar is where most of your money went.</>}>
       {top.length === 0 ? (
         <p className="text-[15px] text-ink-2">Categories show up as soon as you log something.</p>
       ) : (
@@ -96,7 +96,15 @@ export function SubsCell() {
   }
 
   return (
-    <Frame title="Quietly, every month">
+    <Frame
+      title="Quietly, every month"
+      info={
+        <>
+          Charges that come back about <b>once a month at about the same price</b>, like streaming, apps or the gym. Small one at a time, big over a year.
+          Rent is left out on purpose.
+        </>
+      }
+    >
       {subs.length === 0 ? (
         <p className="text-[15px] leading-relaxed text-ink-2">
           Nothing repeats yet. Once something charges you two months running, it shows up here.
@@ -146,7 +154,10 @@ export function WeekdayCell() {
   const max = Math.max(...avg, 1);
   const top = avg.indexOf(Math.max(...avg));
   return (
-    <Frame title="Your pricey day">
+    <Frame
+      title="Your pricey day"
+      info={<>Your average spending on each day of the week over the last 12 weeks (rent left out). Handy for spotting an expensive Friday habit.</>}
+    >
       <div className="flex h-[130px] items-end gap-2">
         {avg.map((v, i) => (
           <div key={i} className="flex h-full flex-1 flex-col items-center justify-end gap-1.5">
