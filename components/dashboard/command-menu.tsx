@@ -1,12 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { Command } from "cmdk";
 import { LEAVE } from "@/lib/motion";
 import { format, parseISO } from "date-fns";
-import { createClient } from "@/lib/supabase/client";
 import { useExpenses } from "@/components/providers/expenses-provider";
 import { useTheme } from "@/components/providers/theme-provider";
 import { money } from "@/components/ui/money";
@@ -40,7 +38,6 @@ export function CommandMenu({
   const { state } = useExpenses();
   const { theme, toggle } = useTheme();
   const [palette, setPalette] = usePalette();
-  const router = useRouter();
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -91,16 +88,13 @@ export function CommandMenu({
     { id: "budget", label: "Set a monthly budget", keywords: "budget limit money", run: () => onTray("menu") },
     { id: "autolog", label: "Auto-log bank texts", keywords: "sms api automation shortcut token", run: () => onTray("autolog") },
     { id: "import", label: "Paste a bunch of expenses", keywords: "import bulk statement paste", run: () => onTray("import") },
-    { id: "csv", label: "Export everything as CSV", keywords: "download export csv excel", run: () => downloadCsv(state.expenses) },
+    { id: "csv", label: "Export everything as CSV", keywords: "download export csv excel", run: () => downloadCsv() },
     {
       id: "out",
-      label: "Sign out",
-      keywords: "logout leave",
-      run: async () => {
-        await createClient().auth.signOut();
-        router.push("/login");
-        router.refresh();
-      },
+      label: "Sign out…",
+      keywords: "logout leave delete account",
+      // Opens the menu, where signing out asks "are you sure" first.
+      run: () => onTray("menu"),
     },
   ].filter((a) => !needle || a.label.toLowerCase().includes(needle) || a.keywords.includes(needle));
 

@@ -1,14 +1,14 @@
 "use client";
 
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { EASE_OUT, LEAVE_QUICK } from "@/lib/motion";
 import { differenceInCalendarDays, format, parseISO } from "date-fns";
 import { useExpenses } from "@/components/providers/expenses-provider";
 import { useToast } from "@/components/providers/toast-provider";
 import { Bubble, Speaker, TypingBubble } from "@/components/dime/bubble";
-import { CashBill } from "@/components/ui/cash-bill";
-import { TranslateToggle } from "@/components/ui/translate";
+import { CashBill, CashRain } from "@/components/ui/cash-bill";
+import { inLang, TranslateToggle, type Lang } from "@/components/ui/translate";
 import { BIG_SPEND, isSixSeven, pickAmount } from "@/lib/amounts";
 import { Money, money } from "@/components/ui/money";
 import { LOCAL_DATE_HEADER, localISODate } from "@/lib/dates";
@@ -22,7 +22,7 @@ const PLACEHOLDERS = ["coffee & croissant 7", "uber home 18", "groceries at fres
 
 const noop = () => () => {};
 
-type Reply = { you: string; items: ExpenseRow[]; text: string; en?: string; tone?: "lego"; egg?: boolean } | null;
+type Reply = { you: string; items: ExpenseRow[]; text: string; en?: string; zh?: string; tone?: "lego"; egg?: boolean } | null;
 
 function greeting(hour: number, name: string) {
   if (hour < 0) return `Hey ${name}! What did we buy?`;
@@ -51,8 +51,11 @@ export function Counter({ callsign, arranging, onLogged }: { callsign: string; a
   const [editingBudget, setEditingBudget] = useState(false);
   // Which number is the price, when you typed more than one.
   const [chosen, setChosen] = useState<number | null>(null);
-  // Show the English version of my Hinglish reply.
-  const [english, setEnglish] = useState(false);
+  // Which language my Hinglish reply is showing in.
+  const [lang, setLang] = useState<Lang>("orig");
+  // A few bills fall when something big gets logged.
+  const [rain, setRain] = useState(0);
+  const stopRain = useCallback(() => setRain(0), []);
   const inputRef = useRef<HTMLInputElement>(null);
   const mirrorRef = useRef<HTMLDivElement>(null);
   const hour = useSyncExternalStore(noop, () => new Date().getHours(), () => -1);
@@ -88,7 +91,7 @@ export function Counter({ callsign, arranging, onLogged }: { callsign: string; a
   if (arranging) {
     line = "Redecorating? Go wild. Drag any card by any part of it, I'll keep everything safe.";
   } else if (reply && !input) {
-    line = english && reply.en ? reply.en : reply.text;
+    line = inLang(lang, reply.text, reply.en, reply.zh);
   } else if (focused && pasted && input) {
     line = "Ooh, a bank text. I'll pull the shop and the amount out of it, don't worry.";
   } else if (focused && price.ambiguous) {
@@ -136,9 +139,10 @@ export function Counter({ callsign, arranging, onLogged }: { callsign: string; a
       const valid = parsed.filter((p) => p.is_expense);
       const comment = parsed[0]?.funny_comment || "";
       const en = parsed[0]?.comment_en || undefined;
-      setEnglish(false);
+      const zh = parsed[0]?.comment_zh || undefined;
+      setLang("orig");
       if (!valid.length) {
-        setReply({ you: text, items: [], text: comment || "I didn't catch a price in that. How much was it?", en: comment ? en : undefined });
+        setReply({ you: text, items: [], text: comment || "I didn't catch a price in that. How much was it?", en: comment ? en : undefined, zh: comment ? zh : undefined });
         return;
       }
       const saveRes = await fetch("/api/expenses", {
@@ -158,7 +162,8 @@ export function Counter({ callsign, arranging, onLogged }: { callsign: string; a
       setInput("");
       setChosen(null);
       const egg = saved.some((x) => isSixSeven(x.amount));
-      setReply({ you: text, items: saved, text: egg ? "SIX SEVENNN 🤷 okay okay, logged." : comment || "Noted.", en: egg || !comment ? undefined : en, egg });
+      if (saved.some((x) => x.amount >= BIG_SPEND)) setRain((n) => n + 1);
+      setReply({ you: text, items: saved, text: egg ? "SIX SEVENNN 🤷 okay okay, logged." : comment || "Noted.", en: egg || !comment ? undefined : en, zh: egg || !comment ? undefined : zh, egg });
     } catch (err) {
       setReply({ you: text, items: [], text: err instanceof Error ? err.message : "Something broke on my side.", tone: "lego" });
       toast(err instanceof Error ? err.message : "Something broke", "error");
@@ -209,6 +214,7 @@ export function Counter({ callsign, arranging, onLogged }: { callsign: string; a
 
   return (
     <section className="grid grid-cols-12 items-start gap-x-10 gap-y-8">
+      {rain > 0 && <CashRain key={rain} onDone={stopRain} />}
       {/* The conversation with Dime */}
       <div className="col-span-12 lg:col-span-7">
         <div className="max-w-[640px]">
@@ -226,13 +232,13 @@ export function Counter({ callsign, arranging, onLogged }: { callsign: string; a
                 </motion.div>
               ) : (
               <motion.div key="dime" layout className={reply?.egg && !input ? "six-seven" : undefined}>
-                <Bubble text={line} tone={reply && !input && !busy ? reply.tone : undefined}>
+                <Bubble text={line} tone={reply && !input && !busy ? reply.tone : undefined} scramble={!!(reply && !input && !busy && reply.en)}>
                   {reply && !input && !busy && reply.items.length > 0 && (
                     <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-line pt-3">
                       {reply.items.map((x) => (
                         <span key={x.id} className="inline-flex items-center gap-2.5 rounded-[8px] bg-oat py-1.5 pl-2.5 pr-3 text-[14px]">
                           <TypeCoin type={x.type} onFlip={() => flip(x)} label />
-                          {x.amount >= BIG_SPEND && <CashBill size={24} burst live />}
+                          {x.amount >= BIG_SPEND && <CashBill size={24} burst />}
                           <span className="font-medium">{x.item_name}</span>
                           <span className="font-semibold">{money(x.amount)}</span>
                         </span>
@@ -240,12 +246,12 @@ export function Counter({ callsign, arranging, onLogged }: { callsign: string; a
                       <button onClick={undo} className="rounded-[8px] px-2.5 py-1.5 text-[14px] font-semibold text-ink-2 hover:bg-oat hover:text-ink">
                         Undo
                       </button>
-                      {reply.en && <TranslateToggle on={english} onChange={setEnglish} className="ml-auto" />}
+                      {reply.en && <TranslateToggle lang={lang} onChange={setLang} hasZh={!!reply.zh} className="ml-auto" />}
                     </div>
                   )}
                   {reply && !input && !busy && reply.items.length === 0 && reply.en && (
                     <div className="mt-2 flex">
-                      <TranslateToggle on={english} onChange={setEnglish} className="-ml-2" />
+                      <TranslateToggle lang={lang} onChange={setLang} hasZh={!!reply.zh} className="-ml-2" />
                     </div>
                   )}
                 </Bubble>

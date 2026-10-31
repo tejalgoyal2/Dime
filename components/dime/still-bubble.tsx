@@ -1,3 +1,5 @@
+import { ScrambleText } from "@/components/ui/scramble";
+
 /**
  * Bubbles with no motion library behind them, for the login thread: the
  * thread moves as one block and each bubble's entrance is plain CSS, so the
@@ -22,7 +24,9 @@ export function StillBubble({
 }) {
   return (
     <div style={{ borderRadius: 14 }} className={`${bubbleClass(from, tone)} ${className}`}>
-      <p key={text} className="text-swap text-[16px] font-medium leading-snug">{text}</p>
+      <p className="text-[16px] font-medium leading-snug">
+        <ScrambleText text={text} />
+      </p>
     </div>
   );
 }
@@ -48,5 +52,19 @@ export function StillTypingBubble({ className = "bg-paper" }: { className?: stri
     >
       <Dots />
     </div>
+  );
+}
+
+/** Me, as a gecko. A 4 KB WebP, already round. */
+export function TejalFace({ size = 40, dot = "border-paper" }: { size?: number; dot?: string }) {
+  return (
+    <span className="relative inline-flex shrink-0" style={{ width: size, height: size }}>
+      {/* eslint-disable-next-line @next/next/no-img-element -- one tiny static image */}
+      <img src="/tejal.webp" alt="Tejal" width={size} height={size} className="h-full w-full rounded-full" draggable={false} />
+      <span
+        className={`absolute -bottom-px -right-px rounded-full bg-life ${dot}`}
+        style={{ width: Math.max(8, size * 0.32), height: Math.max(8, size * 0.32), borderWidth: size > 30 ? 2.5 : 1.5 }}
+      />
+    </span>
   );
 }

@@ -44,6 +44,16 @@ function Shell({ callsign, savedAnimal }: { callsign: string; savedAnimal: strin
   const [layout, setLayout] = useLayout();
   const [arranging, setArranging] = useState(false);
   const [tray, setTray] = useState<TrayName | null>(null);
+  // Panels opened from the menu go back to the menu when closed.
+  const [fromMenu, setFromMenu] = useState(false);
+  const openFromMenu = useCallback((t: TrayName) => {
+    setFromMenu(true);
+    setTray(t);
+  }, []);
+  const closeSub = useCallback(() => {
+    setTray(fromMenu ? "menu" : null);
+    setFromMenu(false);
+  }, [fromMenu]);
   const [editing, setEditing] = useState<ExpenseRow | null>(null);
   const [history, setHistory] = useState<{ open: boolean; q: string }>({ open: false, q: "" });
   const [cmd, setCmd] = useState(false);
@@ -129,7 +139,7 @@ function Shell({ callsign, savedAnimal }: { callsign: string; savedAnimal: strin
         </main>
 
         <footer className="mx-auto flex max-w-[1320px] items-center justify-between px-10 pb-10 text-[13px] text-ink-3">
-          <span>Made with too much coffee by Tejal. Your data is yours; nobody else sees it.</span>
+          <span>Made with too much coffee. Your data is yours; nobody else sees it.</span>
           <span className="flex gap-5">
             <a href="https://github.com/tejalgoyal2/Dime" target="_blank" rel="noopener noreferrer" className="hover:text-ink">GitHub</a>
             <a href="https://tgoyal.me" target="_blank" rel="noopener noreferrer" className="hover:text-ink">tgoyal.me</a>
@@ -137,16 +147,19 @@ function Shell({ callsign, savedAnimal }: { callsign: string; savedAnimal: strin
         </footer>
       </div>
 
-      <MenuTray open={tray === "menu"} onClose={() => setTray(null)} onOpen={setTray} callsign={callsign} animal={animal} onAnimal={setAnimal} />
-      <ImportTray open={tray === "import"} onClose={() => setTray(null)} />
-      <AutologTray open={tray === "autolog"} onClose={() => setTray(null)} />
+      <MenuTray open={tray === "menu"} onClose={() => setTray(null)} onOpen={openFromMenu} callsign={callsign} animal={animal} onAnimal={setAnimal} />
+      <ImportTray open={tray === "import"} onClose={closeSub} />
+      <AutologTray open={tray === "autolog"} onClose={closeSub} />
       <ExpenseSheet expense={editing} onClose={() => setEditing(null)} />
       <HistoryDrawer open={history.open} query={history.q} onClose={closeHistory} onEdit={setEditing} />
       <CommandMenu
         open={cmd}
         onOpenChange={setCmd}
         onArrange={() => setArranging(true)}
-        onTray={setTray}
+        onTray={(t: TrayName) => {
+          setFromMenu(false);
+          setTray(t);
+        }}
         onHistory={openHistory}
         onEdit={setEditing}
       />

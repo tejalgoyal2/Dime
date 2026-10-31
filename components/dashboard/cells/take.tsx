@@ -8,9 +8,10 @@ import { savingTip } from "@/lib/stats";
 import { localISODate } from "@/lib/dates";
 import { money } from "@/components/ui/money";
 import { Frame } from "./frame";
-import { TranslateToggle } from "@/components/ui/translate";
+import { inLang, TranslateToggle, type Lang } from "@/components/ui/translate";
+import { ScrambleText } from "@/components/ui/scramble";
 
-type Said = { kind: "read"; insight: string; tip: string | null } | { kind: "roast"; text: string; english: string | null };
+type Said = { kind: "read"; insight: string; tip: string | null } | { kind: "roast"; text: string; english: string | null; chinese: string | null };
 
 /**
  * Dime's read on your habits: a local tip straight away, and on request a
@@ -21,7 +22,7 @@ export function TakeCell() {
   const { toast } = useToast();
   const [said, setSaid] = useState<Said | null>(null);
   const [busy, setBusy] = useState<"read" | "roast" | null>(null);
-  const [english, setEnglish] = useState(false);
+  const [lang, setLang] = useState<Lang>("orig");
   const habit = savingTip(state.expenses);
 
   async function ask(kind: "read" | "roast") {
@@ -41,9 +42,9 @@ export function TakeCell() {
         body: JSON.stringify({ expenses: recent.map(({ item_name, amount, category, type, date }) => ({ item_name, amount, category, type, date })) }),
       });
       if (!res.ok) throw new Error();
-      const data = (await res.json()) as { insight?: string; tip?: string | null; roast?: string; english?: string | null };
-      setEnglish(false);
-      setSaid(kind === "read" ? { kind, insight: data.insight ?? "", tip: data.tip ?? null } : { kind, text: data.roast ?? "", english: data.english ?? null });
+      const data = (await res.json()) as { insight?: string; tip?: string | null; roast?: string; english?: string | null; chinese?: string | null };
+      setLang("orig");
+      setSaid(kind === "read" ? { kind, insight: data.insight ?? "", tip: data.tip ?? null } : { kind, text: data.roast ?? "", english: data.english ?? null, chinese: data.chinese ?? null });
     } catch {
       toast("I'm out of breath. Ask me again in a minute.", "error");
     } finally {
@@ -65,19 +66,10 @@ export function TakeCell() {
           >
             {said?.kind === "roast" ? (
               <div>
-                <AnimatePresence mode="popLayout" initial={false}>
-                  <motion.p
-                    key={String(english)}
-                    initial={{ opacity: 0, y: 4, filter: "blur(2px)" }}
-                    animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                    exit={{ opacity: 0, y: -4, filter: "blur(2px)", transition: { duration: 0.2, ease: [0.4, 0, 0.2, 1] } }}
-                    transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-                    className="font-medium text-lego"
-                  >
-                    {english && said.english ? said.english : said.text}
-                  </motion.p>
-                </AnimatePresence>
-                {said.english && <TranslateToggle on={english} onChange={setEnglish} className="-ml-2 mt-2" />}
+                <p className="font-medium text-lego">
+                  <ScrambleText text={inLang(lang, said.text, said.english, said.chinese)} />
+                </p>
+                {said.english && <TranslateToggle lang={lang} onChange={setLang} hasZh={!!said.chinese} className="-ml-2 mt-2" />}
               </div>
             ) : said?.kind === "read" ? (
               <>

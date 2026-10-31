@@ -2,7 +2,8 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { LEAVE_QUICK } from "@/lib/motion";
-import { bubbleClass, Dots } from "@/components/dime/still-bubble";
+import { ScrambleText } from "@/components/ui/scramble";
+import { bubbleClass, Dots, TejalFace } from "@/components/dime/still-bubble";
 
 /**
  * One message in the conversation. Mine fade in word by word; yours land
@@ -14,6 +15,7 @@ export function Bubble({
   tone = "plain",
   instant = false,
   still = false,
+  scramble = false,
   className = "",
   children,
 }: {
@@ -24,6 +26,8 @@ export function Bubble({
   instant?: boolean;
   /** No entrance or size animation (the parent moves the whole thread). */
   still?: boolean;
+  /** Text changes decode in place (used when switching languages). */
+  scramble?: boolean;
   className?: string;
   children?: React.ReactNode;
 }) {
@@ -38,7 +42,15 @@ export function Bubble({
       className={`${bubbleClass(from, tone)} ${className}`}
     >
       <motion.div layout={still ? false : "position"}>
-        {you || instant ? <p className="text-[16px] font-medium leading-snug">{text}</p> : <Typed text={text} />}
+        {scramble ? (
+          <p className="text-[16px] font-medium leading-snug">
+            <ScrambleText text={text} />
+          </p>
+        ) : you || instant ? (
+          <p className="text-[16px] font-medium leading-snug">{text}</p>
+        ) : (
+          <Typed text={text} />
+        )}
         {children}
       </motion.div>
     </motion.div>
@@ -91,10 +103,7 @@ export function TypingBubble({ className = "bg-paper" }: { className?: string })
 export function Speaker({ label = "Tejal", note }: { label?: string; note?: string }) {
   return (
     <p className="mb-1.5 flex items-center gap-2 text-[13px] font-semibold text-ink-2">
-      <span className="relative flex h-6 w-6 items-center justify-center rounded-full bg-ink text-[11px] font-semibold text-paper">
-        {label.charAt(0)}
-        <span className="absolute -bottom-px -right-px h-2 w-2 rounded-full border-[1.5px] border-oat bg-life" />
-      </span>
+      <TejalFace size={24} dot="border-oat" />
       {label}
       {note && <span className="font-medium text-ink-3">{note}</span>}
     </p>

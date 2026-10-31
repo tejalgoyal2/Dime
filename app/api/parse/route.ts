@@ -31,6 +31,7 @@ Each entry has:
 - emoji: one fitting emoji, or 💸
 - funny_comment: one short, witty Hinglish line (Indian/English mix) under 15 words. Roast a Want, nod approvingly at a Need. Amounts in $, never rupees. Plain text, no markdown.
 - comment_en: the same line in natural, casual English, keeping the joke (for people who don't speak Hinglish).
+- comment_zh: the same line in natural, casual Simplified Chinese, keeping the joke.
 
 Text:
 ${input.trim()}
@@ -90,12 +91,13 @@ export async function POST(request: NextRequest) {
       throw new Error("AI response was not a valid array.");
     }
 
-    type Parsed = { is_expense: boolean; item_name?: string | null; amount?: number | null; type?: string | null; category?: string | null; date?: string | null; funny_comment?: string; comment_en?: string };
+    type Parsed = { is_expense: boolean; item_name?: string | null; amount?: number | null; type?: string | null; category?: string | null; date?: string | null; funny_comment?: string; comment_en?: string; comment_zh?: string };
     let expenses = (parsed as Parsed[]).slice(0, 20).map((exp) => ({
       ...exp,
       date: exp.is_expense && !(exp.date && ISO_DATE.test(exp.date)) ? today : exp.date,
       funny_comment: exp.funny_comment ? plain(exp.funny_comment) : exp.funny_comment,
       comment_en: exp.comment_en ? plain(exp.comment_en) : undefined,
+      comment_zh: exp.comment_zh ? plain(exp.comment_zh) : undefined,
     }));
     const real = expenses.filter((e) => e.is_expense);
     if (price !== null && real.length === 1) real[0].amount = price;

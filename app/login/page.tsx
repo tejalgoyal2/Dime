@@ -3,18 +3,19 @@
 import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import { emailForName } from "@/lib/callsign";
-import { StillBubble, StillTypingBubble } from "@/components/dime/still-bubble";
+import { StillBubble, StillTypingBubble, TejalFace } from "@/components/dime/still-bubble";
 import { Wordmark } from "@/components/ui/wordmark";
 import { CoinToggle } from "@/components/ui/coin-toggle";
-import { TranslateToggle } from "@/components/ui/translate";
+import { inLang, TranslateToggle, type Lang } from "@/components/ui/translate";
+import { ScrambleText } from "@/components/ui/scramble";
 
 type Step = "hello" | "name" | "secret" | "invite" | "busy" | "done";
-type Msg = { id: number; from: "tejal" | "you"; text: string; en?: string; tone?: "lego" };
-type Line = string | { text: string; en: string };
+type Msg = { id: number; from: "tejal" | "you"; text: string; en?: string; zh?: string; tone?: "lego" };
+type Line = string | { text: string; en: string; zh: string };
 
 const TAKEN = [
   (n: string) => `Bro, ${n} is already famous here. Try another one?`,
-  (n: string) => ({ text: `Arey, ${n} pehle se hai. Kuch aur soch.`, en: `Oh no, ${n} is already taken. Think of another one.` }),
+  (n: string) => ({ text: `Arey, ${n} pehle se hai. Kuch aur soch.`, en: `Oh no, ${n} is already taken. Think of another one.`, zh: `哎呀，${n} 已经有人用了。换一个吧。` }),
   (n: string) => `My database only has budget for one ${n}. ${n}_pro_max?`,
 ];
 
@@ -45,6 +46,8 @@ const loadSupabase = () => import("@/lib/supabase/client");
 export default function LoginPage() {
   const router = useRouter();
   const hour = useSyncExternalStore(noop, () => new Date().getHours(), () => -1);
+  // Just deleted your account? I say goodbye properly.
+  const bye = useSyncExternalStore(noop, () => new URLSearchParams(location.search).has("bye"), () => false);
   const [mode, setMode] = useState<"in" | "new">("in");
   const [step, setStep] = useState<Step>("hello");
   const [msgs, setMsgs] = useState<Msg[]>([]);
@@ -53,8 +56,8 @@ export default function LoginPage() {
   const [invite, setInvite] = useState("");
   const [show, setShow] = useState(false);
   const [typing, setTyping] = useState(false);
-  // Which Hinglish messages you've flipped to English.
-  const [english, setEnglish] = useState<Set<number>>(() => new Set());
+  // Which language each Hinglish message is showing in.
+  const [langs, setLangs] = useState<Record<number, Lang>>({});
   const field = useRef<HTMLInputElement>(null);
   const scroller = useRef<HTMLDivElement>(null);
   const handle = name.trim();
@@ -120,9 +123,9 @@ export default function LoginPage() {
   function say(lines: Line[], next?: Step, tone?: "lego") {
     setTyping(true);
     lines.forEach((line, i) => {
-      const { text, en } = typeof line === "string" ? { text: line, en: undefined } : line;
+      const { text, en, zh } = typeof line === "string" ? { text: line, en: undefined, zh: undefined } : line;
       setTimeout(() => {
-        setMsgs((m) => [...m, { id: seq++, from: "tejal", text, en, tone }]);
+        setMsgs((m) => [...m, { id: seq++, from: "tejal", text, en, zh, tone }]);
         if (i === lines.length - 1) {
           setTyping(false);
           if (next) setStep(next);
@@ -267,7 +270,7 @@ export default function LoginPage() {
   }
 
   const thread: Msg[] = [
-    { id: 1, from: "tejal", text: hello(hour) },
+    { id: 1, from: "tejal", text: bye ? "all gone. every receipt, shredded. it was nice knowing you 🫡" : hello(hour) },
     { id: 2, from: "tejal", text: "I'm Tejal, I made Dime. you tell it what you spent, it sorts it into Life and Lego, then roasts you a lil." },
     { id: 3, from: "tejal", text: "so, have we met before?" },
     ...msgs,
@@ -306,10 +309,7 @@ export default function LoginPage() {
           className="rise col-span-12 flex h-[600px] flex-col overflow-hidden rounded-[14px] bg-paper shadow-paper lg:col-span-5 lg:col-start-8"
         >
           <div className="flex items-center gap-3 border-b border-line px-5 py-3.5">
-            <span className="relative flex h-10 w-10 items-center justify-center rounded-full bg-ink text-[16px] font-semibold text-paper">
-              T
-              <span className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-[2.5px] border-paper bg-life" />
-            </span>
+            <TejalFace size={40} />
             <div className="leading-tight">
               <p className="text-[15px] font-semibold">Tejal</p>
               <p className="text-[13px] text-ink-3">{typing ? "typing…" : "made Dime · usually replies instantly"}</p>
@@ -333,17 +333,13 @@ export default function LoginPage() {
                   }
                 >
                   <StillBubble
-                    text={m.en && english.has(m.id) ? m.en : m.text}
+                    text={inLang(langs[m.id] ?? "orig", m.text, m.en, m.zh)}
                     from={m.from === "you" ? "you" : "dime"}
                     tone={m.tone}
                     className={m.from === "tejal" && !m.tone ? "!bg-oat !shadow-none" : "!shadow-none"}
                   />
                   {m.en && (
-                    <TranslateToggle
-                      on={english.has(m.id)}
-                      onChange={(v) => setEnglish((s) => { const n = new Set(s); if (v) n.add(m.id); else n.delete(m.id); return n; })}
-                      className="mt-1"
-                    />
+                    <TranslateToggle lang={langs[m.id] ?? "orig"} onChange={(l) => setLangs((s) => ({ ...s, [m.id]: l }))} hasZh={!!m.zh} className="mt-1" />
                   )}
                 </div>
               ))}
@@ -504,12 +500,24 @@ function SampleReceipt() {
           ))}
         </ul>
         <div className="mt-4 border-t border-dashed border-line-strong pt-3 text-[13px] text-ink-2">
-          <span title="“Croissant for $7? Bro, are you in Paris or something?”" className="cursor-help underline decoration-dotted decoration-line-strong underline-offset-4">
-            &ldquo;Croissant for $7? Bhai, Paris mein ho kya?&rdquo;
-          </span>
+          <HoverTranslate />
         </div>
         <p className="mt-3 text-center text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-3">No refunds</p>
       </div>
     </div>
+  );
+}
+
+// The receipt's roast is Hinglish; point at it and it decodes into English.
+function HoverTranslate() {
+  const [en, setEn] = useState(false);
+  return (
+    <span
+      onPointerEnter={() => setEn(true)}
+      onPointerLeave={() => setEn(false)}
+      className="pointer-events-auto underline decoration-dotted decoration-line-strong underline-offset-4"
+    >
+      <ScrambleText text={en ? "“Croissant for $7? Bro, are you in Paris or something?”" : "“Croissant for $7? Bhai, Paris mein ho kya?”"} />
+    </span>
   );
 }

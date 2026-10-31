@@ -66,20 +66,22 @@ Roast the user for their bad financial decisions, specifically pointing out 'Wan
 Keep it under 60 words. Be brutal but funny, never mean about who they are.
 Plain text only: no markdown, no asterisks, no title or heading, no quotation marks around it.
 
-Reply with ONLY a JSON object: {"hinglish": "<the roast>", "english": "<the same roast in natural, casual English, same jokes>"}`;
+Reply with ONLY a JSON object: {"hinglish": "<the roast>", "english": "<the same roast in natural, casual English, same jokes>", "chinese": "<the same roast in natural, casual Simplified Chinese, same jokes>"}`;
 
     const raw = await ask(apiKey, prompt, { json: true });
     let roast: string;
     let english: string | null = null;
+    let chinese: string | null = null;
     try {
-      const data = parseJson(raw) as { hinglish?: string; english?: string };
+      const data = parseJson(raw) as { hinglish?: string; english?: string; chinese?: string };
       roast = plain(String(data.hinglish ?? ""));
       english = data.english ? plain(String(data.english)) : null;
+      chinese = data.chinese ? plain(String(data.chinese)) : null;
     } catch {
       roast = plain(raw);
     }
 
-    return NextResponse.json({ roast, english });
+    return NextResponse.json({ roast, english, chinese });
   } catch (error: unknown) {
     console.error(error);
     return apiError("Something went wrong", "INTERNAL_ERROR", 500);

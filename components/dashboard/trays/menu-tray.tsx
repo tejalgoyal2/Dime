@@ -2,7 +2,8 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronRight, ClipboardPaste, Download, LogOut, Target, Zap } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
+import { ChevronRight, ClipboardPaste, Download, LogOut, Target, Trash2, Zap } from "lucide-react";
 import { Pills } from "@/components/ui/pills";
 import { GlideOutline } from "@/components/ui/glide";
 import { ANIMALS, AnimalAvatar, type Animal } from "@/components/ui/animal";
@@ -67,7 +68,27 @@ export function MenuTray({
   const { mode, setMode, theme } = useTheme();
   const [budget, setBudget] = useBudget();
   const [editingBudget, setEditingBudget] = useState(false);
-  const [palette, setPalette] = usePalette();
+  const [palette, setPaletteNow] = usePalette();
+  // Day/night and palette changes crossfade the whole page. Let the marker
+  // finish its glide first, then apply, so the two never fight (that was the
+  // jitter). The marker follows `pending` right away.
+  const [pendingMode, setPendingMode] = useState<typeof mode | null>(null);
+  const [pendingPalette, setPendingPalette] = useState<typeof palette | null>(null);
+  const chooseMode = (m: typeof mode) => {
+    setPendingMode(m);
+    setTimeout(() => {
+      setMode(m);
+      setPendingMode(null);
+    }, 300);
+  };
+  const setPalette = (p: typeof palette) => {
+    setPendingPalette(p);
+    setTimeout(() => {
+      setPaletteNow(p);
+      setPendingPalette(null);
+    }, 300);
+  };
+  const shownPalette = pendingPalette ?? palette;
   const swatches = useRef<HTMLDivElement>(null);
   const zoo = useRef<HTMLDivElement>(null);
   const router = useRouter();
@@ -92,7 +113,7 @@ export function MenuTray({
                 aria-label={a}
                 aria-pressed={animal === a}
                 data-active={animal === a}
-                className="relative z-[3] flex aspect-square items-center justify-center rounded-[12px] transition-transform duration-200 hover:scale-110 active:scale-95"
+                className="relative z-[3] flex aspect-square items-center justify-center rounded-[12px] transition-transform duration-200 active:scale-95"
               >
                 <AnimalAvatar animal={a} size={34} className={animal === a ? "" : "opacity-80 transition-opacity hover:opacity-100"} />
               </button>
@@ -144,18 +165,18 @@ export function MenuTray({
             icon={<Download size={18} />}
             label="Export CSV"
             detail={`${state.expenses.length} expenses`}
-            onClick={() => downloadCsv(state.expenses)}
+            onClick={() => downloadCsv()}
           />
           <li className="border-b border-line px-4 py-3">
             <p className="text-[15px] font-medium">Colours</p>
             <div ref={swatches} className="relative mt-2.5 grid grid-cols-3 gap-2">
-              <GlideOutline container={swatches} active={palette} className="rounded-[10px] ring-2 ring-ink" />
+              <GlideOutline container={swatches} active={shownPalette} className="rounded-[10px] ring-2 ring-ink" />
               {PALETTES.map((p) => (
                 <button
                   key={p.id}
                   onClick={() => setPalette(p.id)}
-                  aria-pressed={palette === p.id}
-                  data-active={palette === p.id}
+                  aria-pressed={shownPalette === p.id}
+                  data-active={shownPalette === p.id}
                   className="overflow-hidden rounded-[10px] text-left ring-2 ring-transparent transition-shadow duration-200 hover:ring-line-strong"
                 >
                   {/* Each swatch shows the palette as it looks right now, day or night. */}
@@ -172,8 +193,8 @@ export function MenuTray({
             <p className="text-[15px] font-medium">Day or night</p>
             <Pills
               label="Day or night"
-              value={mode}
-              onChange={setMode}
+              value={pendingMode ?? mode}
+              onChange={chooseMode}
               options={[
                 { value: "light", label: "Day" },
                 { value: "dark", label: "Night" },
@@ -185,9 +206,7 @@ export function MenuTray({
           </li>
         </ul>
 
-        <ul className="overflow-hidden rounded-[10px] bg-sunken">
-          <Row icon={<LogOut size={18} />} label="Sign out" onClick={signOut} danger />
-        </ul>
+        <AccountActions callsign={callsign} onSignOut={signOut} />
 
         <p className="flex justify-center gap-3 pb-1 text-[13px] text-ink-3">
           <a href="https://github.com/tejalgoyal2/Dime" target="_blank" rel="noopener noreferrer" className="hover:text-ink">GitHub</a>
@@ -196,5 +215,110 @@ export function MenuTray({
         </p>
       </div>
     </Tray>
+  );
+}
+
+const EASE = [0.22, 1, 0.36, 1] as const;
+
+// Sign out (with an "are you sure"), and delete everything (with two).
+function AccountActions({ callsign, onSignOut }: { callsign: string; onSignOut: () => void }) {
+  const router = useRouter();
+  const [step, setStep] = useState<"idle" | "signout" | "delete1" | "delete2" | "deleting">("idle");
+  const [typed, setTyped] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const matches = typed.trim().toLowerCase() === callsign.trim().toLowerCase();
+
+  async function deleteEverything() {
+    setStep("deleting");
+    setError(null);
+    const r = await fetch("/api/account", { method: "DELETE" }).catch(() => null);
+    if (!r?.ok) {
+      const d = (await r?.json().catch(() => null)) as { error?: string } | null;
+      setError(d?.error ?? "Couldn't reach the server. Nothing was deleted.");
+      setStep("delete2");
+      return;
+    }
+    try {
+      for (const k of Object.keys(localStorage)) if (k.startsWith("dime-") && k !== "dime-theme" && k !== "dime-palette") localStorage.removeItem(k);
+    } catch {}
+    router.replace("/login?bye=1");
+    router.refresh();
+  }
+
+  const btn = "h-9 rounded-[8px] px-4 text-[14px] font-semibold transition-[transform,background-color,opacity] duration-200 active:scale-95 disabled:opacity-40";
+  return (
+    <div className="overflow-hidden rounded-[10px] bg-sunken">
+      <AnimatePresence initial={false} mode="popLayout">
+        {step === "idle" && (
+          <motion.ul key="idle" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, transition: { duration: 0.15 } }}>
+            <Row icon={<LogOut size={18} />} label="Sign out" onClick={() => setStep("signout")} danger />
+            <Row icon={<Trash2 size={18} />} label="Delete my account" detail="Everything, forever" onClick={() => setStep("delete1")} danger />
+          </motion.ul>
+        )}
+        {step !== "idle" && (
+          <motion.div
+            key={step === "deleting" ? "delete2" : step}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0, transition: { duration: 0.3, ease: EASE } }}
+            exit={{ opacity: 0, y: -6, transition: { duration: 0.18 } }}
+            className="px-4 py-4"
+          >
+            {step === "signout" && (
+              <>
+                <p className="text-[15px] font-medium">Heading out already? I&apos;ll keep your receipts warm.</p>
+                <div className="mt-3 flex gap-2">
+                  <button onClick={() => setStep("idle")} className={`${btn} flex-1 bg-paper text-ink`}>Stay</button>
+                  <button onClick={onSignOut} className={`${btn} flex-1 bg-ink text-paper`}>Sign out</button>
+                </div>
+              </>
+            )}
+            {step === "delete1" && (
+              <>
+                <p className="text-[15px] font-medium">Whoa, whoa. This deletes everything.</p>
+                <p className="mt-1 text-[14px] leading-snug text-ink-2">
+                  Every expense, your auto-log tokens, your layout, your animal. No undo, no backup, no &ldquo;restore from the cloud&rdquo;. There is no
+                  cloud. It&apos;s just me.
+                </p>
+                <div className="mt-3 flex gap-2">
+                  <button onClick={() => setStep("idle")} className={`${btn} flex-1 bg-paper text-ink`}>Keep my stuff</button>
+                  <button onClick={() => setStep("delete2")} className={`${btn} flex-1 bg-danger text-white`}>Yes, delete it all</button>
+                </div>
+              </>
+            )}
+            {(step === "delete2" || step === "deleting") && (
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (matches && step === "delete2") void deleteEverything();
+                }}
+              >
+                <p className="text-[15px] font-medium">Okay. Final answer?</p>
+                <p className="mt-1 text-[14px] leading-snug text-ink-2">
+                  Type <span className="font-semibold text-ink">{callsign}</span> to say goodbye. Dime will miss you. Your coffee habit won&apos;t.
+                </p>
+                <input
+                  autoFocus
+                  value={typed}
+                  onChange={(e) => setTyped(e.target.value)}
+                  placeholder={callsign}
+                  aria-label="Type your name to confirm"
+                  disabled={step === "deleting"}
+                  className="mt-3 h-10 w-full rounded-[8px] bg-paper px-3 text-[15px] font-medium outline-none ring-2 ring-transparent transition-shadow focus:ring-danger"
+                />
+                {error && <p className="mt-2 text-[13px] font-medium text-danger">{error}</p>}
+                <div className="mt-3 flex gap-2">
+                  <button type="button" onClick={() => { setStep("idle"); setTyped(""); setError(null); }} disabled={step === "deleting"} className={`${btn} flex-1 bg-paper text-ink`}>
+                    Never mind
+                  </button>
+                  <button type="submit" disabled={!matches || step === "deleting"} className={`${btn} flex-1 bg-danger text-white`}>
+                    {step === "deleting" ? "Shredding receipts…" : "Delete forever"}
+                  </button>
+                </div>
+              </form>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 }

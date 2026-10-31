@@ -139,7 +139,7 @@ function Line({ e }: { e: ExpenseRow }) {
           transition={{ duration: 2.2, delay: 0.4 }}
         />
       )}
-      <div className="group relative flex items-baseline py-[5px] text-[15px]">
+      <div className="group relative flex items-baseline py-[5px] pl-0.5 text-[15px]">
         <TypeCoin type={e.type} onFlip={flip} className="mr-2.5 self-center" />
         <button onClick={() => edit(e)} className="min-w-0 truncate text-left font-medium hover:underline hover:decoration-line-strong hover:underline-offset-4" title="Edit">
           {e.item_name}
@@ -150,7 +150,8 @@ function Line({ e }: { e: ExpenseRow }) {
         <button
           onClick={remove}
           aria-label={`Delete ${e.item_name}`}
-          className="ml-1 w-0 overflow-hidden text-[18px] leading-none text-ink-3 opacity-0 transition-all hover:text-danger group-hover:w-5 group-hover:opacity-100 focus-visible:w-5 focus-visible:opacity-100"
+          // Its space is always reserved, so showing it never shoves the row sideways.
+          className="ml-1 w-5 shrink-0 text-[18px] leading-none text-ink-3 opacity-0 transition-[opacity,color] duration-200 hover:text-danger group-hover:opacity-100 focus-visible:opacity-100"
         >
           ×
         </button>
