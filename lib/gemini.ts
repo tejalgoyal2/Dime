@@ -67,6 +67,8 @@ export async function ask(apiKey: string, prompt: string, opts: AskOptions = {})
   if (process.env.GROQ_API_KEY) {
     try {
       const text = await askGroq(prompt);
+      // If we needed JSON and Groq's answer isn't readable, let Gemini try.
+      if (opts.json) parseJson(text);
       opts.onProvider?.("groq");
       return text;
     } catch (e) {
