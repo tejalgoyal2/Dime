@@ -23,7 +23,7 @@ export function StillBubble({
   className?: string;
 }) {
   return (
-    <div style={{ borderRadius: 14 }} className={`${bubbleClass(from, tone)} ${className}`}>
+    <div data-flip style={{ borderRadius: 14 }} className={`${bubbleClass(from, tone)} ${className}`}>
       <p className="text-[16px] font-medium leading-snug">
         <ScrambleText text={text} />
       </p>
@@ -55,16 +55,10 @@ export function StillTypingBubble({ className = "bg-paper" }: { className?: stri
   );
 }
 
-/** Me, as a gecko. A 4 KB WebP, already round. */
-export function TejalFace({ size = 40, dot = "border-paper" }: { size?: number; dot?: string }) {
+/** Me (and Tom), as a gecko. A 4 KB WebP, already round. */
+export function TejalFace({ size = 40 }: { size?: number }) {
   return (
-    <span className="relative inline-flex shrink-0" style={{ width: size, height: size }}>
-      {/* eslint-disable-next-line @next/next/no-img-element -- one tiny static image */}
-      <img src="/tejal.webp" alt="Tejal" width={size} height={size} className="h-full w-full rounded-full" draggable={false} />
-      <span
-        className={`absolute -bottom-px -right-px rounded-full bg-life ${dot}`}
-        style={{ width: Math.max(8, size * 0.32), height: Math.max(8, size * 0.32), borderWidth: size > 30 ? 2.5 : 1.5 }}
-      />
-    </span>
+    // eslint-disable-next-line @next/next/no-img-element -- one tiny static image
+    <img src="/tejal.webp" alt="" width={size} height={size} className="shrink-0 rounded-full" style={{ width: size, height: size }} draggable={false} />
   );
 }

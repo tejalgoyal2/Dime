@@ -34,7 +34,46 @@ type AskOptions = {
 
 const statusOf = (e: unknown) => (e as { status?: number; code?: number })?.status ?? (e as { code?: number })?.code;
 
-export async function ask(apiKey: string, prompt: string, { json = false, parse = false }: AskOptions = {}): Promise<string> {
+// Groq runs open models on its own chips at ~1,000 tokens a second, which
+// makes replies feel instant. When GROQ_API_KEY is set it answers first and
+// Gemini is the backup; without it, Gemini does everything as before.
+const GROQ_MODEL = "openai/gpt-oss-20b";
+
+async function askGroq(prompt: string): Promise<string> {
+  const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${process.env.GROQ_API_KEY}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: process.env.GROQ_MODEL || GROQ_MODEL,
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.7,
+      max_completion_tokens: 1200,
+      reasoning_effort: "low",
+      include_reasoning: false,
+    }),
+    // If Groq is slow today, don't make you wait: fall back to Gemini.
+    signal: AbortSignal.timeout(6000),
+  });
+  if (!res.ok) throw Object.assign(new Error(`Groq ${res.status}`), { status: res.status });
+  const data = (await res.json()) as { choices?: { message?: { content?: string } }[] };
+  const text = data.choices?.[0]?.message?.content?.trim();
+  if (!text) throw new Error("Groq returned nothing");
+  return text;
+}
+
+export async function ask(apiKey: string, prompt: string, opts: AskOptions = {}): Promise<string> {
+  if (process.env.GROQ_API_KEY) {
+    try {
+      return await askGroq(prompt);
+    } catch (e) {
+      console.warn("Groq failed, using Gemini:", e instanceof Error ? e.message : e);
+      if (!apiKey) throw e;
+    }
+  }
+  return askGemini(apiKey, prompt, opts);
+}
+
+async function askGemini(apiKey: string, prompt: string, { json = false, parse = false }: AskOptions = {}): Promise<string> {
   const ai = new GoogleGenAI({ apiKey });
   const base = {
     ...(json ? { responseMimeType: "application/json" } : {}),
@@ -71,10 +110,19 @@ export async function ask(apiKey: string, prompt: string, { json = false, parse 
   throw lastError;
 }
 
-/** Pull JSON out of a reply, tolerating stray code fences. */
+/** Pull JSON out of a reply, tolerating stray code fences or a sentence around it. */
 export function parseJson(text: string): unknown {
   const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
-  return JSON.parse((fenced ? fenced[1] : text).trim());
+  const body = (fenced ? fenced[1] : text).trim();
+  try {
+    return JSON.parse(body);
+  } catch {
+    // Some models wrap JSON in a line of prose; take the outermost {...} or [...].
+    const start = body.search(/[[{]/);
+    const end = Math.max(body.lastIndexOf("}"), body.lastIndexOf("]"));
+    if (start >= 0 && end > start) return JSON.parse(body.slice(start, end + 1));
+    throw new Error("No JSON in reply");
+  }
 }
 
 /** Models love **markdown**. Dime shows plain text, so strip it. */

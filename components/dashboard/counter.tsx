@@ -7,7 +7,7 @@ import { differenceInCalendarDays, format, parseISO } from "date-fns";
 import { useExpenses } from "@/components/providers/expenses-provider";
 import { useToast } from "@/components/providers/toast-provider";
 import { Bubble, Speaker, TypingBubble } from "@/components/dime/bubble";
-import { CashBill, CashRain } from "@/components/ui/cash-bill";
+import { CashBill, CashFly } from "@/components/ui/cash-bill";
 import { inLang, TranslateToggle, type Lang } from "@/components/ui/translate";
 import { BIG_SPEND, isSixSeven, pickAmount } from "@/lib/amounts";
 import { Money, money } from "@/components/ui/money";
@@ -58,7 +58,7 @@ export function Counter({ callsign, arranging, onLogged }: { callsign: string; a
   const [chosen, setChosen] = useState<number | null>(null);
   // Which language my Hinglish reply is showing in.
   const [lang, setLang] = useState<Lang>("orig");
-  // A few bills fall when something big gets logged.
+  // Something big logged: its bill hops into the month total.
   const [rain, setRain] = useState(0);
   const stopRain = useCallback(() => setRain(0), []);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -128,6 +128,20 @@ export function Counter({ callsign, arranging, onLogged }: { callsign: string; a
     send(input);
   }
 
+  // The older two-step path, used only if the server didn't save in one go.
+  async function saveSeparately(valid: ParsedExpense[]) {
+    const saveRes = await fetch("/api/expenses", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(valid.map((p) => ({ item_name: p.item_name, amount: p.amount, category: p.category, type: p.type, date: p.date, emoji: p.emoji || null }))),
+    });
+    if (!saveRes.ok) {
+      const data = (await saveRes.json().catch(() => ({}))) as { error?: string };
+      throw new Error(data.error || "Couldn't save that");
+    }
+    return (await saveRes.json()) as ExpenseRow[];
+  }
+
   async function send(raw: string) {
     const text = raw.trim();
     if (!text || busy) return;
@@ -139,12 +153,15 @@ export function Counter({ callsign, arranging, onLogged }: { callsign: string; a
       const headers: Record<string, string> = { [LOCAL_DATE_HEADER]: localISODate() };
       // When there was a choice to make, tell the server which number is the price.
       if (hint.ambiguous && hint.picked) headers["x-dime-amount"] = String(hint.picked.value);
-      const parseRes = await fetch("/api/parse", { method: "POST", headers, body: text });
+      // One round trip: the server reads it and saves it in the same request.
+      const parseRes = await fetch("/api/parse?save=1", { method: "POST", headers, body: text });
       if (!parseRes.ok) {
         const data = (await parseRes.json().catch(() => ({}))) as { error?: string };
         throw new Error(parseRes.status === 429 ? "Slow down a little. Try again in a minute." : data.error || "Couldn't read that");
       }
-      const parsed = (await parseRes.json()) as ParsedExpense[];
+      const data = (await parseRes.json()) as ParsedExpense[] | { parsed: ParsedExpense[]; saved: ExpenseRow[] };
+      const parsed = Array.isArray(data) ? data : data.parsed;
+      const savedHere = Array.isArray(data) ? null : data.saved;
       const valid = parsed.filter((p) => p.is_expense);
       const comment = parsed[0]?.funny_comment || "";
       const en = parsed[0]?.comment_en || undefined;
@@ -154,18 +171,7 @@ export function Counter({ callsign, arranging, onLogged }: { callsign: string; a
         setReply({ you: text, items: [], text: comment || "I didn't catch a price in that. How much was it?", en: comment ? en : undefined, zh: comment ? zh : undefined });
         return;
       }
-      const saveRes = await fetch("/api/expenses", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(
-          valid.map((p) => ({ item_name: p.item_name, amount: p.amount, category: p.category, type: p.type, date: p.date, emoji: p.emoji || null }))
-        ),
-      });
-      if (!saveRes.ok) {
-        const data = (await saveRes.json().catch(() => ({}))) as { error?: string };
-        throw new Error(data.error || "Couldn't save that");
-      }
-      const saved = (await saveRes.json()) as ExpenseRow[];
+      const saved = savedHere ?? (await saveSeparately(valid));
       addExpenses(saved);
       onLogged(saved.map((x) => x.id));
       setInput("");
@@ -223,7 +229,7 @@ export function Counter({ callsign, arranging, onLogged }: { callsign: string; a
 
   return (
     <section className="grid grid-cols-12 items-start gap-y-8 lg:gap-x-10">
-      {rain > 0 && <CashRain key={rain} onDone={stopRain} />}
+      {rain > 0 && <CashFly key={rain} onDone={stopRain} />}
       {/* The conversation with Dime */}
       <div className="col-span-12 lg:col-span-7">
         <div className="max-w-[640px]">
@@ -247,7 +253,11 @@ export function Counter({ callsign, arranging, onLogged }: { callsign: string; a
                       {reply.items.map((x) => (
                         <span key={x.id} className="inline-flex min-w-0 max-w-full items-center gap-2.5 rounded-[8px] bg-oat py-1.5 pl-2.5 pr-3 text-[14px]">
                           <TypeCoin type={x.type} onFlip={() => flip(x)} label className="pointer-coarse:-my-1.5 pointer-coarse:py-1.5" />
-                          {x.amount >= BIG_SPEND && <CashBill size={24} burst />}
+                          {x.amount >= BIG_SPEND && (
+                            <span data-cash-chip className="inline-flex">
+                              <CashBill size={24} burst />
+                            </span>
+                          )}
                           <span className="min-w-0 truncate font-medium">{x.item_name}</span>
                           <span className="shrink-0 font-semibold">{money(x.amount)}</span>
                         </span>
@@ -386,7 +396,9 @@ export function Counter({ callsign, arranging, onLogged }: { callsign: string; a
       {/* The month so far */}
       <div className="col-span-12 lg:col-span-5 lg:pl-6">
         <p className="text-[15px] font-medium text-ink-2">{format(new Date(), "MMMM")} so far</p>
-        <Money value={s.total} className="mt-1 block text-[52px] font-semibold leading-[1.02] tracking-[-0.035em] sm:text-[64px]" />
+        <div data-month-total className="mt-1 w-fit origin-left">
+          <Money value={s.total} className="block text-[52px] font-semibold leading-[1.02] tracking-[-0.035em] sm:text-[64px]" />
+        </div>
 
         <div className="relative mt-4 h-3.5 overflow-hidden rounded-full bg-panel">
           <motion.div
@@ -396,7 +408,7 @@ export function Counter({ callsign, arranging, onLogged }: { callsign: string; a
             transition={{ type: "spring", stiffness: 120, damping: 24 }}
           >
             <motion.span className="h-full bg-life" animate={{ flexGrow: s.needs }} transition={{ type: "spring", stiffness: 160, damping: 26 }} />
-            <motion.span className="h-full bg-lego" animate={{ flexGrow: s.wants }} transition={{ type: "spring", stiffness: 160, damping: 26 }} />
+            <motion.span className="relative -ml-px h-full bg-lego" animate={{ flexGrow: s.wants }} transition={{ type: "spring", stiffness: 160, damping: 26 }} />
           </motion.div>
           {budget && <span className="absolute inset-y-0 w-[3px] rounded-[8px] bg-ink" style={{ left: `calc(${pace * 100}% - 1.5px)` }} title="Where you'd be at an even pace" />}
         </div>

@@ -18,8 +18,13 @@ export function GlideOutline({ container, active, className = "" }: { container:
   const [shown, setShown] = useState(false);
   const first = useRef(true);
 
+  // Measure from the outline's own parent: its ref is attached before this
+  // component's layout effects run, unlike a ref on an ancestor (which made
+  // the very first placement miss and the outline stay hidden).
+  const self = useRef<HTMLSpanElement>(null);
+  const box = () => self.current?.parentElement ?? container.current;
   const measure = () => {
-    const t = container.current?.querySelector<HTMLElement>('[data-active="true"]');
+    const t = box()?.querySelector<HTMLElement>('[data-active="true"]');
     return t ? [t.offsetLeft, t.offsetTop, t.offsetWidth, t.offsetHeight] : null;
   };
 
@@ -38,7 +43,7 @@ export function GlideOutline({ container, active, className = "" }: { container:
   // The container resizing: follow without animating. The observer's first
   // call (on attach) is ignored so it can't cut a glide short.
   useLayoutEffect(() => {
-    const el = container.current;
+    const el = box();
     if (!el) return;
     let attached = false;
     const ro = new ResizeObserver(() => {
@@ -55,6 +60,7 @@ export function GlideOutline({ container, active, className = "" }: { container:
 
   return (
     <motion.span
+      ref={self}
       aria-hidden
       className={`pointer-events-none absolute left-0 top-0 z-[2] ${className}`}
       style={{ x, y, width: w, height: h, opacity: shown ? 1 : 0 }}

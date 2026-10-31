@@ -22,10 +22,13 @@ export const metadata: Metadata = {
     siteName: "Dime",
     images: [
       {
-        url: "/og-image.png",
-        width: 1200,
-        height: 630,
-        alt: "Dime, the expense tracker that roasts you",
+        // Rendered at 2x so it stays sharp on retina screens; ?v= busts
+        // LinkedIn's and Slack's preview caches when it changes.
+        url: "/og-image.png?v=3",
+        width: 2400,
+        height: 1260,
+        type: "image/png",
+        alt: "Dime: text it what you spent, it sorts Life from Lego and roasts you a little",
       },
     ],
     type: "website",
@@ -34,7 +37,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Dime",
     description: "Every cent has a story. Usually a bad one.",
-    images: ["/og-image.png"],
+    images: ["/og-image.png?v=3"],
   },
   appleWebApp: {
     capable: true,

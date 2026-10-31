@@ -184,15 +184,15 @@ export function TrendsCell() {
           >
             {view === "bars" && (
               <>
+                {/* The average sits behind the bars (it shows in the gaps, never
+                    slicing through one); its label sits on top, at the left edge. */}
                 {avg > 0 && (
                   <motion.div
-                    className="pointer-events-none absolute inset-x-0 z-10 border-t-2 border-dashed border-ink-3/60"
+                    className="pointer-events-none absolute inset-x-0 border-t-2 border-dashed border-ink-3/45"
                     initial={false}
                     animate={{ bottom: h(avg) }}
                     transition={spring}
-                  >
-                    <span className="absolute -top-[22px] right-0 rounded-[8px] bg-panel px-1.5 text-[12px] font-medium text-ink-3">avg {money(avg, 0)}</span>
-                  </motion.div>
+                  />
                 )}
                 <div className="absolute inset-0 flex items-end gap-[3px]">
                   {bars.map((b, i) => {
@@ -209,7 +209,9 @@ export function TrendsCell() {
                             animate={{ height: v ? Math.max(4, h(v)) : 2, opacity: dim ? 0.35 : 1 }}
                             transition={{ ...spring, delay: hover === null ? i * 0.012 : 0 }}
                           >
-                            <motion.span className="block bg-lego" animate={{ flexGrow: b.lego }} transition={spring} />
+                            {/* The Lego part overlaps Life by a pixel so no hairline of
+                                background can show between them. */}
+                            <motion.span className="relative z-[1] -mb-px block bg-lego" animate={{ flexGrow: b.lego }} transition={spring} />
                             <motion.span className="block bg-life" animate={{ flexGrow: b.life || (v ? 0 : 1) }} transition={spring} />
                           </motion.div>
                         )}
@@ -217,6 +219,16 @@ export function TrendsCell() {
                     );
                   })}
                 </div>
+                {avg > 0 && (
+                  <motion.span
+                    className="pointer-events-none absolute left-0 z-20 translate-y-1/2 rounded-[6px] bg-panel px-1.5 py-px text-[11px] font-semibold text-ink-3 shadow-edge"
+                    initial={false}
+                    animate={{ bottom: h(avg) }}
+                    transition={spring}
+                  >
+                    avg {money(avg, 0)}
+                  </motion.span>
+                )}
               </>
             )}
 

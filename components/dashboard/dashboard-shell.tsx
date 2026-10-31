@@ -4,7 +4,7 @@ import { useCallback, useRef, useState, useSyncExternalStore } from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { ExpensesProvider, useExpenses } from "@/components/providers/expenses-provider";
 import { Wordmark } from "@/components/ui/wordmark";
-import { AnimalAvatar, animalFor, type Animal } from "@/components/ui/animal";
+import { CoinAvatar, finishFor, type Finish } from "@/components/ui/coin-avatar";
 import { CoinToggle } from "@/components/ui/coin-toggle";
 import { useLayout } from "@/lib/dashboard/use-layout";
 import type { ExpenseRow } from "@/lib/supabase/types";
@@ -22,23 +22,23 @@ const noop = () => () => {};
 
 interface DashboardShellProps {
   callsign: string;
-  animal: string | null;
+  coin: string | null;
 }
 
-export function DashboardShell({ callsign, animal }: DashboardShellProps) {
+export function DashboardShell({ callsign, coin }: DashboardShellProps) {
   return (
     <ExpensesProvider>
-      <Shell callsign={callsign} savedAnimal={animal} />
+      <Shell callsign={callsign} savedCoin={coin} />
     </ExpensesProvider>
   );
 }
 
-function Shell({ callsign, savedAnimal }: { callsign: string; savedAnimal: string | null }) {
-  const [animal, setAnimalState] = useState<Animal>(() => animalFor(callsign, savedAnimal));
-  const setAnimal = useCallback((a: Animal) => {
-    setAnimalState(a);
+function Shell({ callsign, savedCoin }: { callsign: string; savedCoin: string | null }) {
+  const [coin, setCoinState] = useState<Finish>(() => finishFor(callsign, savedCoin));
+  const setCoin = useCallback((c: Finish) => {
+    setCoinState(c);
     // Kept on your account so it follows you to every device.
-    void fetch("/api/profile", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ animal: a }) });
+    void fetch("/api/profile", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ coin: c }) });
   }, []);
   const { state } = useExpenses();
   const [layout, setLayout] = useLayout();
@@ -115,7 +115,7 @@ function Shell({ callsign, savedAnimal }: { callsign: string; savedAnimal: strin
                 aria-label="Menu"
                 className="flex h-10 items-center gap-2 rounded-[8px] bg-panel px-[5px] text-[15px] font-semibold transition-colors hover:bg-line-strong md:pl-2 md:pr-4"
               >
-                <AnimalAvatar animal={animal} size={30} />
+                <CoinAvatar name={callsign} finish={coin} size={30} />
                 <span className="hidden md:inline">{callsign}</span>
               </motion.button>
             </div>
@@ -157,8 +157,8 @@ function Shell({ callsign, savedAnimal }: { callsign: string; savedAnimal: strin
           setArranging(true);
         }}
         callsign={callsign}
-        animal={animal}
-        onAnimal={setAnimal}
+        coin={coin}
+        onCoin={setCoin}
       />
       <ImportTray open={tray === "import"} onClose={closeSub} />
       <AutologTray open={tray === "autolog"} onClose={closeSub} />

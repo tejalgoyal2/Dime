@@ -6,6 +6,7 @@ import { isValidOrigin } from "@/lib/origin-check";
 import { apiError } from "@/lib/api-error";
 import { ask, parseJson, plain } from "@/lib/gemini";
 import { learnFromHistory, LIFE_LEGO_RULES } from "@/lib/life-lego";
+import { createExpenseSchema } from "@/lib/schemas/expense";
 import { ISO_DATE, LOCAL_DATE_HEADER } from "@/lib/dates";
 
 const buildPrompt = (input: string, today: string, price: number | null) => `
@@ -43,22 +44,25 @@ export async function POST(request: NextRequest) {
       return apiError("Invalid origin", "INVALID_ORIGIN", 403);
     }
 
-    const ip = getRequestIp(request.headers);
-    const { allowed, retryAfter } = await checkRateLimit(ip);
+    // Timings for each step go out in a Server-Timing header (see DevTools →
+    // Network → Timing), so slowness can be pinned on the right thing.
+    const t0 = Date.now();
+    const marks: string[] = [];
+    const mark = (name: string, since: number) => marks.push(`${name};dur=${Date.now() - since}`);
+
+    // The rate limit and the session check don't depend on each other: run them together.
+    const supabase = await createClient();
+    const [{ allowed, retryAfter }, auth] = await Promise.all([checkRateLimit(getRequestIp(request.headers)), supabase.auth.getUser()]);
     if (!allowed) {
       return apiError("Rate limited", "RATE_LIMITED", 429, retryAfter);
     }
-
-    const supabase = await createClient();
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-    if (authError || !user) {
+    const user = auth.data.user;
+    if (auth.error || !user) {
       return apiError("Unauthorized", "UNAUTHORIZED", 401);
     }
 
     const budget = await checkAiBudget(user.id);
+    mark("checks", t0);
     if (!budget.allowed) {
       return apiError("That's enough AI for today. It resets tomorrow.", "RATE_LIMITED", 429, budget.retryAfter);
     }
@@ -86,7 +90,11 @@ export async function POST(request: NextRequest) {
     const hinted = Number(request.headers.get("x-dime-amount"));
     const price = Number.isFinite(hinted) && hinted > 0 && hinted < 1e7 ? hinted : null;
 
-    const parsed = parseJson(await ask(apiKey, buildPrompt(body, today, price), { json: true, parse: true }));
+    const tAi = Date.now();
+    const reply = parseJson(await ask(apiKey, buildPrompt(body, today, price), { json: true, parse: true }));
+    mark("ai", tAi);
+    // Some models wrap the list in an object ({"items": [...]}); accept either.
+    const parsed = Array.isArray(reply) ? reply : (Object.values((reply ?? {}) as object).find(Array.isArray) as unknown[] | undefined);
     if (!Array.isArray(parsed)) {
       throw new Error("AI response was not a valid array.");
     }
@@ -102,10 +110,31 @@ export async function POST(request: NextRequest) {
     const real = expenses.filter((e) => e.is_expense);
     if (price !== null && real.length === 1) real[0].amount = price;
     // Same thing as before? Sort it the way you sorted it last time.
+    const tDb = Date.now();
     const learned = await learnFromHistory(supabase, user.id, real);
     expenses = expenses.map((e) => (e.is_expense ? learned[real.indexOf(e)] : e));
 
-    return NextResponse.json(expenses);
+    // ?save=1: also save the expenses here, so logging is one round trip
+    // instead of two (parse, then a separate save).
+    let saved: unknown[] | null = null;
+    if (request.nextUrl.searchParams.get("save") === "1" && real.length) {
+      const rows = learned
+        .map((e) => createExpenseSchema.safeParse({ item_name: e.item_name, amount: e.amount, category: e.category, type: e.type, date: e.date, emoji: (e as { emoji?: string }).emoji || null }))
+        .filter((r) => r.success)
+        .map((r) => ({ ...r.data!, user_id: user.id }));
+      if (rows.length) {
+        const { data, error } = await supabase.from("expenses").insert(rows).select("id, item_name, amount, category, type, date, emoji, created_at");
+        if (error) {
+          console.error(error);
+          return apiError("Couldn't save that", "INTERNAL_ERROR", 500);
+        }
+        saved = data;
+      }
+    }
+    mark("db", tDb);
+    mark("total", t0);
+
+    return NextResponse.json(saved ? { parsed: expenses, saved } : expenses, { headers: { "Server-Timing": marks.join(", ") } });
   } catch (error: unknown) {
     const message =
       error instanceof Error ? error.message : "Unknown error occurred.";

@@ -6,7 +6,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { ChevronRight, ClipboardPaste, Download, LayoutGrid, LogOut, Target, Trash2, Zap } from "lucide-react";
 import { Pills } from "@/components/ui/pills";
 import { GlideOutline } from "@/components/ui/glide";
-import { ANIMALS, AnimalAvatar, type Animal } from "@/components/ui/animal";
+import { CoinAvatar, FINISHES, finishName, type Finish } from "@/components/ui/coin-avatar";
 import { createClient } from "@/lib/supabase/client";
 import { useExpenses } from "@/components/providers/expenses-provider";
 import { useTheme } from "@/components/providers/theme-provider";
@@ -57,8 +57,8 @@ export function MenuTray({
   onOpen,
   onArrange,
   callsign,
-  animal,
-  onAnimal,
+  coin,
+  onCoin,
 }: {
   open: boolean;
   onClose: () => void;
@@ -66,8 +66,8 @@ export function MenuTray({
   /** Phones keep Arrange in here, since the header has no room for it. */
   onArrange?: () => void;
   callsign: string;
-  animal: Animal;
-  onAnimal: (a: Animal) => void;
+  coin: Finish;
+  onCoin: (c: Finish) => void;
 }) {
   const { state } = useExpenses();
   const { mode, setMode, theme } = useTheme();
@@ -105,22 +105,23 @@ export function MenuTray({
   }
 
   return (
-    <Tray open={open} onClose={onClose} title={callsign} icon={<AnimalAvatar animal={animal} size={36} />}>
+    <Tray open={open} onClose={onClose} title={callsign} icon={<CoinAvatar name={callsign} finish={coin} size={36} />}>
       <div className="space-y-4">
         <div className="rounded-[10px] bg-sunken px-4 py-3">
-          <p className="text-[15px] font-medium">Your animal</p>
-          <div ref={zoo} className="relative mt-2 grid grid-cols-8 gap-1">
-            <GlideOutline container={zoo} active={animal} className="rounded-[12px] bg-paper shadow-paper ring-2 ring-ink" />
-            {ANIMALS.map((a) => (
+          <p className="text-[15px] font-medium">Your coin</p>
+          <div ref={zoo} className="relative mt-2 grid grid-cols-6 gap-1.5">
+            <GlideOutline container={zoo} active={coin} className="rounded-[12px] bg-paper shadow-paper ring-2 ring-ink" />
+            {FINISHES.map((f) => (
               <button
-                key={a}
-                onClick={() => onAnimal(a)}
-                aria-label={a}
-                aria-pressed={animal === a}
-                data-active={animal === a}
+                key={f}
+                onClick={() => onCoin(f)}
+                aria-label={finishName(f)}
+                title={finishName(f)}
+                aria-pressed={coin === f}
+                data-active={coin === f}
                 className="relative z-[3] flex aspect-square items-center justify-center rounded-[12px] transition-transform duration-200 active:scale-95"
               >
-                <AnimalAvatar animal={a} size={34} className={animal === a ? "" : "opacity-80 transition-opacity hover:opacity-100"} />
+                <CoinAvatar name={callsign} finish={f} size={34} />
               </button>
             ))}
           </div>
@@ -284,7 +285,7 @@ function AccountActions({ callsign, onSignOut }: { callsign: string; onSignOut: 
               <>
                 <p className="text-[15px] font-medium">Whoa, whoa. This deletes everything.</p>
                 <p className="mt-1 text-[14px] leading-snug text-ink-2">
-                  Every expense, your auto-log tokens, your layout, your animal. No undo, no backup, no &ldquo;restore from the cloud&rdquo;. There is no
+                  Every expense, your auto-log tokens, your layout, your coin. No undo, no backup, no &ldquo;restore from the cloud&rdquo;. There is no
                   cloud. It&apos;s just me.
                 </p>
                 <div className="mt-3 flex gap-2">

@@ -123,7 +123,7 @@ export function ClockCell() {
                 transition={{ ...spring, delay: hover === null ? i * 0.015 : 0 }}
                 style={{ background: v ? undefined : "var(--line)" }}
               >
-                <span className="block bg-lego" style={{ flexGrow: b.lego }} />
+                <span className="relative z-[1] -mb-px block bg-lego" style={{ flexGrow: b.lego }} />
                 <span className="block bg-life" style={{ flexGrow: b.life }} />
               </motion.div>
             </div>

@@ -65,7 +65,7 @@ export function TakeCell() {
             className="min-w-0 flex-1 text-[15px] leading-relaxed"
           >
             {said?.kind === "roast" ? (
-              <div>
+              <div data-flip>
                 <p className="font-medium text-lego">
                   <ScrambleText text={inLang(lang, said.text, said.english, said.chinese)} />
                 </p>

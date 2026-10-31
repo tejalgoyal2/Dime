@@ -6,8 +6,8 @@ import { LegoBrick, LifeCoin } from "@/components/ui/life-lego-icons";
 
 /**
  * Life or Lego, as a tiny two-faced token: a coin on the Life side, a Lego
- * brick on the other. Click it and it gets tossed: it jumps, turns over, and
- * a ring bursts out in the new colour, so a flip is impossible to miss.
+ * brick on the other. Click it and it gets tossed: it jumps, turns over and
+ * lands, so a flip is impossible to miss (and nothing spills outside it).
  * `label` shows the word, which rolls over too.
  */
 export function TypeCoin({
@@ -41,13 +41,6 @@ export function TypeCoin({
       className={`group/coin inline-flex shrink-0 items-center gap-1.5 [perspective:200px] disabled:cursor-default ${className}`}
     >
       <span className="relative block h-3.5 w-3.5">
-        {flips > 0 && (
-          <span
-            key={flips}
-            aria-hidden
-            className={`coin-burst absolute inset-0 rounded-full border-2 ${lego ? "border-lego" : "border-life"}`}
-          />
-        )}
         <motion.span
           key={`toss-${flips}`}
           className="relative block h-full w-full transition-[scale] duration-200 [transform-style:preserve-3d] group-enabled/coin:group-hover/coin:scale-125"

@@ -396,34 +396,11 @@ input[type="number"] {
   to { scale: 1; rotate: 0deg; opacity: 1; }
 }
 
-/* Cash rain: each bill falls with a lazy side-to-side drift and flutters
-   (a slow 3D turn), easing in and fading out before the bottom. */
-.cash-fall {
-  opacity: 0;
-  will-change: transform, opacity;
-  animation-name: cash-fall;
-  animation-timing-function: cubic-bezier(0.35, 0.15, 0.45, 1);
-  animation-fill-mode: both;
-}
-@keyframes cash-fall {
-  0% { opacity: 0; transform: translate3d(0, -12vh, 0) rotate(var(--r)) rotateX(0deg) rotateY(0deg); }
-  12% { opacity: 1; }
-  35% { transform: translate3d(var(--drift), 22vh, 0) rotate(calc(var(--r) * -0.6)) rotateX(130deg) rotateY(20deg); }
-  65% { transform: translate3d(calc(var(--drift) * -0.6), 50vh, 0) rotate(calc(var(--r) * 0.8)) rotateX(250deg) rotateY(-15deg); }
-  80% { opacity: 0.9; }
-  100% { opacity: 0; transform: translate3d(calc(var(--drift) * 0.4), 78vh, 0) rotate(calc(var(--r) * -0.4)) rotateX(360deg) rotateY(0deg); }
-}
 @media (prefers-reduced-motion: reduce) {
-  .cash .cash-note, .cash-fall { animation: none !important; }
+  .cash .cash-note { animation: none !important; }
 }
 
-/* The Life/Lego coin's burst when it flips. */
-.coin-burst { animation: coin-burst 0.55s cubic-bezier(0.22, 1, 0.36, 1) both; pointer-events: none; }
-@keyframes coin-burst {
-  from { scale: 1; opacity: 0.9; }
-  to { scale: 3.2; opacity: 0; }
-}
-@media (prefers-reduced-motion: reduce) { .coin-burst { animation: none; opacity: 0; } }
+
 
 /* 6-7: the bubble does the hands. */
 .six-seven { animation: six-seven 0.9s ease-in-out 2; transform-origin: 30% 100%; }
@@ -507,3 +484,8 @@ input[type="number"] {
 @media (prefers-reduced-motion: reduce) { .word-roll, .text-swap { animation: none; } }
 /* The decoding band in translated text: dimmer and in the Lego colour. */
 .decode-band { color: var(--lego); opacity: 0.75; }
+
+/* Login reply box: only the contents fade when it changes. */
+.fade-swap { animation: fade-swap 0.24s ease-out both; }
+@keyframes fade-swap { from { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .fade-swap { animation: none; } }

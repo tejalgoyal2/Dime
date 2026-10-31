@@ -61,6 +61,7 @@ export default function LoginPage() {
   const field = useRef<HTMLInputElement>(null);
   const scroller = useRef<HTMLDivElement>(null);
   const handle = name.trim();
+  const waiting = step === "busy" || step === "done";
 
   // iMessage-style: when something new lands, the whole thread slides up
   // together. Jump to the bottom, then start the thread offset by however much
@@ -86,32 +87,10 @@ export default function LoginPage() {
     });
   }, [msgs.length, typing]);
 
-  // The reply box swaps like a presence: the old one leaves, then the new one
-  // comes in. `shown` trails `step` by the length of the exit.
-  const [shown, setShown] = useState(step);
-  const latest = useRef(step);
-  const reply = useRef<HTMLDivElement>(null);
-  const leaving = useRef(false);
-  useEffect(() => {
-    latest.current = step;
-    if (step === shown || leaving.current) return;
-    const el = reply.current;
-    if (!el) return;
-    leaving.current = true;
-    el.animate([{ opacity: 1, translate: "0 0" }, { opacity: 0, translate: "0 -6px" }], {
-      duration: 180,
-      easing: "cubic-bezier(0.42, 0, 0.58, 1)",
-      fill: "forwards",
-    }).finished.then(() => {
-      leaving.current = false;
-      setShown(latest.current);
-    });
-  }, [step, shown]);
-
   // Put the cursor in whichever box is showing.
   useEffect(() => {
-    if (shown === "name" || shown === "secret" || shown === "invite") field.current?.focus();
-  }, [shown]);
+    if (step === "name" || step === "secret" || step === "invite") field.current?.focus();
+  }, [step]);
 
   // Fetch the sign-in code while they type the secret, not on first paint.
   useEffect(() => {
@@ -312,7 +291,7 @@ export default function LoginPage() {
             <TejalFace size={40} />
             <div className="leading-tight">
               <p className="text-[15px] font-semibold">Tejal</p>
-              <p className="text-[13px] text-ink-3">{typing ? "typing…" : "made Dime · usually replies instantly"}</p>
+              <p className="text-[13px] text-ink-3">made Dime · usually replies instantly</p>
             </div>
           </div>
 
@@ -361,87 +340,91 @@ export default function LoginPage() {
             {step !== "name" && (
               <input aria-hidden tabIndex={-1} readOnly value={name} autoComplete="username" className="pointer-events-none absolute h-0 w-0 opacity-0" />
             )}
-            <div ref={reply} key={shown} className={`flex items-center gap-2 ${shown === "hello" ? "" : "swap-in"}`}>
-                {shown === "hello" && (
-                  // The two answers settle in once the intro has been said.
-                  <div className="rise flex w-full gap-2" style={{ "--y": "8px", "--d": "1.6s" } as React.CSSProperties}>
-                    <button type="button" onClick={() => choose("in")} className="h-12 flex-1 rounded-[10px] bg-ink text-[15px] font-semibold text-paper transition-transform active:scale-[0.98]">
-                      Yep, sign me in
-                    </button>
-                    <button type="button" onClick={() => choose("new")} className="h-12 flex-1 rounded-[10px] bg-oat text-[15px] font-semibold text-ink transition-transform hover:bg-panel active:scale-[0.98]">
-                      Nope, I&apos;m new
-                    </button>
-                  </div>
-                )}
-                {shown === "name" && (
-                  <>
-                    <input
-                      ref={field}
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      autoComplete="username"
-                      autoCapitalize="none"
-                      spellCheck={false}
-                      maxLength={40}
-                      placeholder="Your name"
-                      className={box}
-                    />
-                    <Send disabled={!handle} />
-                  </>
-                )}
-                {shown === "secret" && (
-                  <>
-                    <span className="relative flex min-w-0 flex-1">
-                      <input
-                        ref={field}
-                        type={show ? "text" : "password"}
-                        value={secret}
-                        onChange={(e) => setSecret(e.target.value)}
-                        autoComplete={mode === "in" ? "current-password" : "new-password"}
-                        placeholder="Your secret"
-                        className={`${box} pr-16`}
-                      />
-                      <button
-                        type="button"
-                        onMouseDown={(e) => e.preventDefault()}
-                        onClick={() => setShow((s) => !s)}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 rounded-[8px] px-2.5 py-1 text-[13px] font-semibold text-ink-2 hover:bg-panel hover:text-ink pointer-coarse:py-2"
-                      >
-                        {show ? "hide" : "show"}
-                      </button>
-                    </span>
-                    <Send disabled={!secret} />
-                  </>
-                )}
-                {shown === "invite" && (
-                  <>
-                    <input
-                      ref={field}
-                      value={invite}
-                      onChange={(e) => setInvite(e.target.value)}
-                      autoCapitalize="none"
-                      spellCheck={false}
-                      placeholder="Invite code (ask a friend, me :D)"
-                      className={box}
-                    />
-                    <Send disabled={!invite.trim()} />
-                  </>
-                )}
-                {(shown === "busy" || shown === "done") && <div className="h-12 w-full rounded-[10px] bg-oat" />}
-            </div>
-            {(step === "name" || step === "secret" || step === "invite") && (
-              <div className="mt-2 flex justify-between gap-3 px-1 text-[13px] font-medium text-ink-3">
-                {step === "secret" && mode === "in" ? (
-                  <button type="button" onClick={back} className="min-w-0 truncate text-left transition-colors hover:text-ink pointer-coarse:-my-2 pointer-coarse:py-2">
-                    Not {handle}?<span className="max-[400px]:hidden"> Change name</span>
-                  </button>
-                ) : (
-                  <span />
-                )}
-                <button type="button" onClick={switchMode} className="shrink-0 whitespace-nowrap text-right transition-colors hover:text-ink pointer-coarse:-my-2 pointer-coarse:py-2">
-                  {mode === "in" ? "New here? Make an account" : "Have an account? Sign in"}
+            {step === "hello" ? (
+              // The two answers settle in once the intro has been said.
+              <div className="rise flex w-full gap-2" style={{ "--y": "8px", "--d": "1.6s" } as React.CSSProperties}>
+                <button type="button" onClick={() => choose("in")} className="h-12 flex-1 rounded-[10px] bg-ink text-[15px] font-semibold text-paper transition-transform active:scale-[0.98]">
+                  Yep, sign me in
+                </button>
+                <button type="button" onClick={() => choose("new")} className="h-12 flex-1 rounded-[10px] bg-oat text-[15px] font-semibold text-ink transition-transform hover:bg-panel active:scale-[0.98]">
+                  Nope, I&apos;m new
                 </button>
               </div>
+            ) : (
+              <>
+                {/* One reply box that stays put. While I'm typing it says so,
+                    the way a chat app would, and only its contents fade. */}
+                <div className="fade-swap flex items-center gap-2">
+                  <div className="relative min-w-0 flex-1">
+                    {waiting ? (
+                      <div key="wait" aria-live="polite" className="fade-swap flex h-12 items-center gap-2.5 rounded-[10px] bg-oat px-4 text-[15px] font-medium text-ink-3">
+                        {step === "done" ? "Opening your book…" : "Hang on, I'm replying"}
+                      </div>
+                    ) : step === "name" ? (
+                      <input
+                        key="name"
+                        ref={field}
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        autoComplete="username"
+                        autoCapitalize="none"
+                        spellCheck={false}
+                        maxLength={40}
+                        placeholder="Your name"
+                        className={`${box} fade-swap w-full`}
+                      />
+                    ) : step === "secret" ? (
+                      <span key="secret" className="fade-swap relative flex">
+                        <input
+                          ref={field}
+                          type={show ? "text" : "password"}
+                          value={secret}
+                          onChange={(e) => setSecret(e.target.value)}
+                          autoComplete={mode === "in" ? "current-password" : "new-password"}
+                          placeholder="Your secret"
+                          className={`${box} w-full pr-16`}
+                        />
+                        <button
+                          type="button"
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => setShow((v) => !v)}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 rounded-[8px] px-2.5 py-1 text-[13px] font-semibold text-ink-2 hover:bg-panel hover:text-ink pointer-coarse:py-2"
+                        >
+                          {show ? "hide" : "show"}
+                        </button>
+                      </span>
+                    ) : (
+                      <input
+                        key="invite"
+                        ref={field}
+                        value={invite}
+                        onChange={(e) => setInvite(e.target.value)}
+                        autoCapitalize="none"
+                        spellCheck={false}
+                        placeholder="Invite code (ask a friend, me :D)"
+                        className={`${box} fade-swap w-full`}
+                      />
+                    )}
+                  </div>
+                  <Send disabled={waiting || (step === "name" ? !handle : step === "secret" ? !secret : !invite.trim())} />
+                </div>
+                {/* Always takes its space, so the box never jumps when it appears. */}
+                <div
+                  aria-hidden={waiting}
+                  className={`mt-2 flex h-5 justify-between gap-3 px-1 text-[13px] font-medium text-ink-3 transition-opacity duration-300 ${waiting ? "pointer-events-none opacity-0" : "opacity-100"}`}
+                >
+                  {step === "secret" && mode === "in" ? (
+                    <button type="button" onClick={back} className="min-w-0 truncate text-left transition-colors hover:text-ink pointer-coarse:-my-2 pointer-coarse:py-2">
+                      Not {handle}?<span className="max-[400px]:hidden"> Change name</span>
+                    </button>
+                  ) : (
+                    <span />
+                  )}
+                  <button type="button" onClick={switchMode} className="shrink-0 whitespace-nowrap text-right transition-colors hover:text-ink pointer-coarse:-my-2 pointer-coarse:py-2">
+                    {mode === "in" ? "New here? Make an account" : "Have an account? Sign in"}
+                  </button>
+                </div>
+              </>
             )}
           </form>
         </div>
@@ -508,17 +491,26 @@ function SampleReceipt() {
   );
 }
 
-// The receipt's roast is Hinglish; point at it and it decodes into English.
+// The receipt's roast is Hinglish; point at it (or tap it) and it decodes
+// into English. The whole quote block is the target, so the text changing
+// length under the pointer can't make it flicker on and off.
 function HoverTranslate() {
   const [en, setEn] = useState(false);
   return (
     <span
       onPointerEnter={(e) => e.pointerType === "mouse" && setEn(true)}
       onPointerLeave={(e) => e.pointerType === "mouse" && setEn(false)}
-      onClick={(e) => e.nativeEvent instanceof PointerEvent && e.nativeEvent.pointerType !== "mouse" && setEn((v) => !v)}
-      className="pointer-events-auto underline decoration-dotted decoration-line-strong underline-offset-4"
+      onClick={() => setEn((v) => !v)}
+      data-flip
+      className="pointer-events-auto block cursor-default"
     >
       <ScrambleText text={en ? "“Croissant for $7? Bro, are you in Paris or something?”" : "“Croissant for $7? Bhai, Paris mein ho kya?”"} />
+      <span className="mt-1 flex items-center gap-1 text-[11px] font-semibold text-ink-3">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+          <path d="m5 8 6 6M4 14l6-6 2-3M2 5h12M7 2h1M22 22l-5-10-5 10M14 18h6" />
+        </svg>
+        {en ? "English" : "hover to translate"}
+      </span>
     </span>
   );
 }

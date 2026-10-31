@@ -34,14 +34,17 @@ export function Bubble({
   const you = from === "you";
   return (
     <motion.div
-      layout={!still}
+      // Language switches resize the bubble themselves (ScrambleText), so
+      // framer's layout animation would only fight them.
+      layout={!still && !scramble}
+      data-flip
       initial={still ? false : { opacity: 0, y: 10, scale: 0.98 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ type: "spring", stiffness: 420, damping: 34 }}
       style={{ borderRadius: 14 }}
       className={`${bubbleClass(from, tone)} ${className}`}
     >
-      <motion.div layout={still ? false : "position"}>
+      <motion.div layout={still || scramble ? false : "position"}>
         {scramble ? (
           <p className="text-[16px] font-medium leading-snug">
             <ScrambleText text={text} />
@@ -99,11 +102,15 @@ export function TypingBubble({ className = "bg-paper" }: { className?: string })
   );
 }
 
-/** Who's talking: me (Tejal), with a little avatar. */
-export function Speaker({ label = "Tejal", note }: { label?: string; note?: string }) {
+/**
+ * Who's talking in the app: Tom the lizard. Tejal greets you at the door
+ * (login); inside, your money talk is between you and Tom, not a person
+ * reading your receipts.
+ */
+export function Speaker({ label = "Tom the lizard", note }: { label?: string; note?: string }) {
   return (
     <p className="mb-1.5 flex items-center gap-2 text-[13px] font-semibold text-ink-2">
-      <TejalFace size={24} dot="border-oat" />
+      <TejalFace size={24} />
       {label}
       {note && <span className="font-medium text-ink-3">{note}</span>}
     </p>

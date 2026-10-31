@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 // A cartoony green bill for big spends: one small inline SVG, no images.
@@ -28,51 +28,61 @@ export function CashBill({ size = 22, burst = false, className = "" }: { size?: 
   );
 }
 
-// A handful of bills, each with its own lane, drift, tumble and timing.
-const BILLS = [
-  { x: 12, drift: 40, size: 40, dur: 2.3, delay: 0, r: -18 },
-  { x: 27, drift: -30, size: 34, dur: 2.0, delay: 0.25, r: 12 },
-  { x: 44, drift: 26, size: 46, dur: 2.5, delay: 0.1, r: -8 },
-  { x: 61, drift: -36, size: 36, dur: 2.1, delay: 0.4, r: 20 },
-  { x: 76, drift: 30, size: 42, dur: 2.4, delay: 0.15, r: -14 },
-  { x: 90, drift: -22, size: 32, dur: 2.0, delay: 0.5, r: 10 },
-];
-
 /**
- * When something big gets logged: a few bills drift down the screen,
- * fluttering as they fall, and fade before they reach the bottom. Pure CSS
- * transforms in a fixed layer that ignores the mouse, gone after 3 seconds.
- * Nothing at all with reduced motion.
+ * When something big gets logged, the bill in the reply hops over into the
+ * month total: it lifts, arcs across, shrinks and lands, and the total gives
+ * a small pulse as it "receives" it. Sideways and up/down run on separate
+ * easings (like a thrown object), so the path is a natural curve. One small
+ * element and two compositor animations; nothing at all with reduced motion.
  */
-export function CashRain({ onDone }: { onDone: () => void }) {
-  const [reduce] = useState(() => typeof matchMedia !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches);
+export function CashFly({ onDone }: { onDone: () => void }) {
+  const [el, setEl] = useState<{ x: number; y: number; dx: number; dy: number } | null>(null);
+  const outer = useRef<HTMLDivElement>(null);
+  const inner = useRef<SVGSVGElement>(null);
+
+  // Find where the bill starts (in the reply) and where it lands (the total).
   useEffect(() => {
-    const t = setTimeout(onDone, reduce ? 0 : 3200);
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches) return onDone();
+    const from = document.querySelector("[data-cash-chip]")?.getBoundingClientRect();
+    const to = document.querySelector("[data-month-total]")?.getBoundingClientRect();
+    if (!from || !to) return onDone();
+    const t = setTimeout(() => {
+      setEl({ x: from.left, y: from.top, dx: to.left + Math.min(to.width, 220) * 0.5 - from.left, dy: to.top + to.height * 0.45 - from.top });
+    }, 380); // after the bill has popped into the reply
     return () => clearTimeout(t);
-  }, [onDone, reduce]);
-  if (reduce || typeof document === "undefined") return null;
+  }, [onDone]);
+
+  useEffect(() => {
+    if (!el || !outer.current || !inner.current) return;
+    const D = 820;
+    const lift = Math.min(-60, el.dy - 70); // always rise above the landing spot first
+    outer.current.animate([{ transform: "translateX(0)" }, { transform: `translateX(${el.dx}px)` }], { duration: D, easing: "cubic-bezier(0.4, 0, 0.6, 1)", fill: "forwards" });
+    const fly = inner.current.animate(
+      [
+        { transform: "translateY(0) rotate(0deg) scale(1)", opacity: 1, offset: 0 },
+        { transform: `translateY(${lift}px) rotate(-14deg) scale(1.25)`, opacity: 1, offset: 0.42, easing: "cubic-bezier(0.25, 0.6, 0.4, 1)" },
+        { transform: `translateY(${el.dy}px) rotate(8deg) scale(0.55)`, opacity: 0.9, offset: 0.92, easing: "cubic-bezier(0.55, 0, 0.75, 0.6)" },
+        { transform: `translateY(${el.dy}px) rotate(8deg) scale(0.4)`, opacity: 0, offset: 1 },
+      ],
+      { duration: D, fill: "forwards", easing: "linear" }
+    );
+    fly.finished
+      .then(() => {
+        document.querySelector<HTMLElement>("[data-month-total]")?.animate(
+          [{ transform: "scale(1)" }, { transform: "scale(1.035)", offset: 0.35 }, { transform: "scale(1)" }],
+          { duration: 420, easing: "cubic-bezier(0.22, 1, 0.36, 1)" }
+        );
+      })
+      .catch(() => {})
+      .finally(onDone);
+  }, [el, onDone]);
+
+  if (!el || typeof document === "undefined") return null;
   return createPortal(
-    <div aria-hidden className="pointer-events-none fixed inset-0 z-[70] overflow-hidden [perspective:800px]">
-      {BILLS.map((b, i) => (
-        <svg
-          key={i}
-          width={b.size}
-          height={b.size}
-          viewBox="0 0 32 32"
-          className="cash-fall absolute top-0"
-          style={
-            {
-              left: `${b.x}%`,
-              "--drift": `${b.drift}px`,
-              "--r": `${b.r}deg`,
-              animationDuration: `${b.dur}s`,
-              animationDelay: `${b.delay}s`,
-            } as React.CSSProperties
-          }
-        >
-          <Note />
-        </svg>
-      ))}
+    <div ref={outer} aria-hidden className="pointer-events-none fixed z-[70]" style={{ left: el.x, top: el.y }}>
+      <svg ref={inner} width={26} height={26} viewBox="0 0 32 32" className="overflow-visible" style={{ transformOrigin: "50% 50%" }}>
+        <Note />
+      </svg>
     </div>,
     document.body
   );
