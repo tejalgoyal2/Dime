@@ -36,6 +36,7 @@ type AskOptions = {
 };
 
 const GEMINI = { fast: ["gemini-flash-lite-latest", "gemini-flash-latest"], serious: ["gemini-flash-latest", "gemini-flash-lite-latest"] };
+
 const GROQ_MODEL = "openai/gpt-oss-120b";
 const RETRY_DELAYS = [1200, 3000];
 
@@ -121,7 +122,7 @@ async function askGemini({ system, prompt, schema, temperature = 0.8, kind = "fa
           ...(thinking ? { thinkingConfig: { thinkingLevel: thinking } } : {}),
           ...(lenient ? { safetySettings: LENIENT } : {}),
           // A stuck call falls through to Groq instead of hanging the request.
-          abortSignal: AbortSignal.timeout(kind === "fast" ? 8000 : 25000),
+          abortSignal: AbortSignal.timeout(kind === "fast" ? 8000 : 15000),
         },
       });
       const text = (res.text ?? "").trim();
@@ -136,8 +137,11 @@ async function askGemini({ system, prompt, schema, temperature = 0.8, kind = "fa
         attempt--;
         continue;
       }
-      if (status === 404) {
-        m++; // that model's gone: try the next one, no waiting
+      // Gone (404), swamped (a brand-new release often is, for a while) or
+      // too slow: try the next model straight away.
+      const slow = (error as Error)?.name === "AbortError";
+      if ((status === 404 || status === 429 || status === 503 || slow) && m < models.length - 1) {
+        m++;
         attempt--;
         continue;
       }
