@@ -134,7 +134,7 @@ export function CommandMenu({
                 {hasAmount && (
                   <Command.Group heading="Log" className="cmdk-group">
                     <Command.Item value="log" onSelect={run(() => window.dispatchEvent(new CustomEvent("dime:log", { detail: q.trim() })))} className={item}>
-                      <span className="flex h-6 w-6 items-center justify-center rounded-[6px] bg-lego text-[14px] font-bold text-white">+</span>
+                      <span className="flex h-6 w-6 items-center justify-center rounded-[6px] bg-lego-fill text-[14px] font-bold text-on-lego">+</span>
                       Log “{q.trim()}”
                       <kbd className="ml-auto text-[12px] font-semibold text-ink-3">↵</kbd>
                     </Command.Item>

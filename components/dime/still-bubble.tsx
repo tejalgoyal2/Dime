@@ -7,7 +7,7 @@ import { ScrambleText } from "@/components/ui/scramble";
  */
 export function bubbleClass(from: "dime" | "you", tone: "plain" | "lego" = "plain") {
   const you = from === "you";
-  const color = you ? "bg-ink text-paper" : tone === "lego" ? "bg-lego text-white" : "bg-paper text-ink";
+  const color = you ? "bg-ink text-paper" : tone === "lego" ? "bg-lego-fill text-on-lego" : "bg-paper text-ink";
   return `relative w-fit max-w-full px-4 py-3 shadow-paper ${you ? "ml-auto !rounded-tr-[4px]" : "!rounded-tl-[4px]"} ${color}`;
 }
 

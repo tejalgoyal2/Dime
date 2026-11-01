@@ -21,6 +21,9 @@
   --line-strong: color-mix(in oklab, var(--ink) 20%, transparent);
   --edge: transparent;
   --danger: #d23b1f;
+  /* Orange behind white text, deepened so the text clears 4:1. */
+  --lego-fill: color-mix(in oklab, var(--lego) 80%, black);
+  --on-lego: #fff;
   --shadow-paper: inset 0 1px 0 var(--edge), 0 1px 1px rgba(20, 20, 24, 0.05), 0 8px 24px -12px rgba(20, 20, 24, 0.22);
   --shadow-lift: inset 0 1px 0 var(--edge), 0 2px 4px rgba(20, 20, 24, 0.08), 0 26px 50px -16px rgba(20, 20, 24, 0.35);
   color-scheme: light;
@@ -30,6 +33,9 @@
   --line-strong: color-mix(in oklab, var(--ink) 17%, transparent);
   --edge: rgba(255, 255, 255, 0.055);
   --danger: #ff7559;
+  /* The night orange is light, so it takes dark text instead. */
+  --lego-fill: var(--lego);
+  --on-lego: var(--paper);
   --shadow-paper: inset 0 1px 0 var(--edge), 0 1px 2px rgba(0, 0, 0, 0.5), 0 12px 28px -14px rgba(0, 0, 0, 0.7);
   --shadow-lift: inset 0 1px 0 var(--edge), 0 2px 6px rgba(0, 0, 0, 0.5), 0 30px 60px -18px rgba(0, 0, 0, 0.85);
   color-scheme: dark;
@@ -41,7 +47,7 @@
   --paper: #f9f9f8;
   --ink: #18181a;
   --ink-2: #57575a;
-  --ink-3: #8d8d90;
+  --ink-3: #77777a;
   --life: #2c2c30;
   --lego: #f07a00;
   --butter: #ffd27a;
@@ -52,7 +58,7 @@
   --paper: #242427;
   --ink: #ececea;
   --ink-2: #a6a6a4;
-  --ink-3: #6d6d70;
+  --ink-3: #858587;
   --life: #d6d6d2;
   --lego: #ff9933;
   --butter: #6e5520;
@@ -64,7 +70,7 @@
   --paper: #fafcf9;
   --ink: #16201a;
   --ink-2: #536058;
-  --ink-3: #87938b;
+  --ink-3: #707c74;
   --life: #1d8a57;
   --lego: #e2467b;
   --butter: #ffe08a;
@@ -75,7 +81,7 @@
   --paper: #1e2620;
   --ink: #e6eee8;
   --ink-2: #a0aea5;
-  --ink-3: #66746b;
+  --ink-3: #7c8980;
   --life: #52c690;
   --lego: #ff7aa3;
   --butter: #5e4f1c;
@@ -87,7 +93,7 @@
   --paper: #fafbf6;
   --ink: #1b1e19;
   --ink-2: #585d54;
-  --ink-3: #8b9086;
+  --ink-3: #767a71;
   --life: #4f6e58;
   --lego: #c42638;
   --butter: #f6dc8c;
@@ -98,7 +104,7 @@
   --paper: #22261f;
   --ink: #e9ece3;
   --ink-2: #a6ab9e;
-  --ink-3: #6b7065;
+  --ink-3: #83887d;
   --life: #97b89f;
   --lego: #ff5a6b;
   --butter: #5f521f;
@@ -110,7 +116,7 @@
   --paper: #f9faf7;
   --ink: #15201a;
   --ink-2: #526057;
-  --ink-3: #86938a;
+  --ink-3: #6e7b72;
   --life: #23573f;
   --lego: #e39a00;
   --butter: #ffe2a0;
@@ -121,7 +127,7 @@
   --paper: #1c2620;
   --ink: #e5ede8;
   --ink-2: #9fafa5;
-  --ink-3: #64736a;
+  --ink-3: #7b8981;
   --life: #6fbf95;
   --lego: #ffb627;
   --butter: #5a4a16;
@@ -133,7 +139,7 @@
   --paper: #fcfafb;
   --ink: #221a20;
   --ink-2: #61545d;
-  --ink-3: #958791;
+  --ink-3: #81747e;
   --life: #5b2d57;
   --lego: #ee7f4f;
   --butter: #ffd9a8;
@@ -144,7 +150,7 @@
   --paper: #272026;
   --ink: #f0e8ee;
   --ink-2: #b3a4ae;
-  --ink-3: #776973;
+  --ink-3: #8d8089;
   --life: #c99bc4;
   --lego: #ff9566;
   --butter: #5c3f22;
@@ -156,7 +162,7 @@
   --paper: #fbf9f6;
   --ink: #231b16;
   --ink-2: #63574e;
-  --ink-3: #978a80;
+  --ink-3: #81756c;
   --life: #5a3e2e;
   --lego: #d5832b;
   --butter: #f7dca6;
@@ -167,7 +173,7 @@
   --paper: #28221d;
   --ink: #f0e8e0;
   --ink-2: #b5a99d;
-  --ink-3: #786d63;
+  --ink-3: #8e837a;
   --life: #c9a58a;
   --lego: #f0a04b;
   --butter: #5b4420;
@@ -186,6 +192,8 @@
   --color-line-strong: var(--line-strong);
   --color-life: var(--life);
   --color-lego: var(--lego);
+  --color-lego-fill: var(--lego-fill);
+  --color-on-lego: var(--on-lego);
   --color-butter: var(--butter);
   --color-danger: var(--danger);
 

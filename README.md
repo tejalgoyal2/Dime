@@ -109,7 +109,9 @@ lib/
   parse-prompt.ts what Tom is told when you log something
   amounts.ts      finding the price in what you typed
   rate-limit.ts   all the limits in one place
-supabase/         SQL to run once (keep-alive table, dashboard + auto-log tables)
+supabase/         SQL to run once (expenses table, keep-alive table, dashboard + auto-log tables)
+docs/             setup, internals, and the two long reads below
+.github/          the deploy workflow and the Supabase keep-alive
 ```
 
 ---
@@ -153,6 +155,17 @@ Pushing to `main` deploys to Cloudflare through GitHub Actions. A second workflo
 
 - Don't add `export const runtime = "edge"` to API routes. OpenNext already runs them at the edge, and the directive breaks them with a silent 500 and no stack trace.
 - Read `process.env` inside functions, not at the top of a module. Workers fill env in late.
+
+---
+
+## Docs
+
+- **[docs/auto-log.md](docs/auto-log.md)**: set up phone auto-logging (iPhone, Android, anything with a webhook).
+- **[docs/under-the-hood.md](docs/under-the-hood.md)**: the short tour of how it works.
+- **[docs/DIME.md](docs/DIME.md)**: the full reference. Every route, table, prompt, secret name (never the values) and how to deploy.
+- **[docs/DIME-subjective.md](docs/DIME-subjective.md)**: the other half. How it got made, what was rejected, and why it looks the way it does.
+
+Releases are tagged on the [releases page](https://github.com/tejalgoyal2/Dime/releases), each one a checkpoint you can come back to.
 
 ---
 

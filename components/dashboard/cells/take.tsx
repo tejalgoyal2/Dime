@@ -117,7 +117,7 @@ export function TakeCell() {
         <button
           onClick={() => ask("roast")}
           disabled={!!busy}
-          className="h-9 rounded-[8px] border-2 border-lego px-4 text-[14px] font-semibold text-lego transition-[transform,background-color,color] hover:bg-lego hover:text-white active:scale-95 disabled:opacity-60 max-sm:h-10 max-sm:flex-1"
+          className="h-9 rounded-[8px] border-2 border-lego px-4 text-[14px] font-semibold text-lego transition-[transform,background-color,color] hover:bg-lego-fill hover:text-on-lego active:scale-95 disabled:opacity-60 max-sm:h-10 max-sm:flex-1"
         >
           {busy === "roast" ? "Warming up…" : "Roast me"}
         </button>
