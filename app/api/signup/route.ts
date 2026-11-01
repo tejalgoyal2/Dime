@@ -18,7 +18,8 @@ const bodySchema = z.object({
     .trim()
     .min(1)
     .max(32)
-    .regex(/^[\p{L}\p{N} ._-]+$/u),
+    .regex(/^[\p{L}\p{N} ._-]+$/u)
+    .regex(/[\p{L}\p{N}]/u), // at least one letter or digit (".", "-" alone isn't a name)
   secret: z.string().min(6).max(72),
   code: z.string().trim().min(1).max(100),
 });
@@ -27,7 +28,7 @@ export async function POST(request: NextRequest) {
   try {
     if (!isValidOrigin(request.headers)) return apiError("Invalid origin", "INVALID_ORIGIN", 403);
 
-    const { allowed, retryAfter } = await checkRateLimit(getRequestIp(request.headers), "strict");
+    const { allowed, retryAfter } = await checkRateLimit(`signup:${getRequestIp(request.headers)}`, "strict");
     if (!allowed) return apiError("Too many attempts. Try again later.", "RATE_LIMITED", 429, retryAfter);
 
     const inviteCode = process.env.INVITE_CODE;

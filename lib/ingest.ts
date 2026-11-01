@@ -8,6 +8,8 @@ import { amountWasTyped, CATEGORIES, CURRENCY_RULE, learnFromHistory, LIFE_LEGO_
 import { ISO_DATE } from "@/lib/dates";
 import { createExpenseSchema } from "@/lib/schemas/expense";
 import { sha256Hex } from "@/lib/tokens";
+import { todayIn } from "@/lib/tz";
+import { getCloudflareContext } from "@opennextjs/cloudflare";
 
 // The shared pipeline behind /api/ingest and /api/quick-add: guard, read the
 // message (a bank alert or a plain note like "coffee 5"), log it once.
@@ -88,7 +90,13 @@ export async function userForToken(token: string) {
   const tokenHash = await sha256Hex(token);
   const { data } = await admin.from("api_tokens").select("id, user_id").eq("token_hash", tokenHash).maybeSingle();
   if (!data) return null;
-  void admin.from("api_tokens").update({ last_used_at: new Date().toISOString() }).eq("id", data.id).then(() => {});
+  // Recorded after the response; waitUntil keeps the Worker alive for it.
+  const touch = admin.from("api_tokens").update({ last_used_at: new Date().toISOString() }).eq("id", data.id).then(() => {});
+  try {
+    getCloudflareContext().ctx.waitUntil(touch);
+  } catch {
+    void touch; // not on Workers (local dev): it just runs
+  }
   return { userId: data.user_id as string, bucket: tokenHash.slice(0, 24) };
 }
 
@@ -105,7 +113,8 @@ export async function logMessage(userId: string, bucket: string, body: NonNullab
   if (!admin || !(process.env.GEMINI_API_KEY || process.env.GROQ_API_KEY)) return apiError("Auto-log isn't configured on the server", "MISSING_CONFIG", 503);
 
   const { text, source, sender } = body.data;
-  const today = body.data.date ?? new Date().toISOString().slice(0, 10);
+  // Your date, not the server's (UTC): from your saved time zone.
+  const today = body.data.date ?? todayIn((await admin.auth.admin.getUserById(userId)).data.user?.user_metadata?.tz);
 
   // A bank alert forwarded twice (or by two automations) logs once. Typed notes
   // don't dedupe: two "coffee 5"s in a day are two coffees.

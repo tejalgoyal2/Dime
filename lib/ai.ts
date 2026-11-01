@@ -31,12 +31,15 @@ type AskOptions = {
   temperature?: number;
   /** How hard Groq's model thinks first. Defaults: low for fast, medium for serious. */
   effort?: "low" | "medium" | "high";
+  /** A photo to read along with the prompt (a receipt), base64 without the data: prefix. */
+  image?: { data: string; mimeType: string };
   /** Told which provider answered, for the Server-Timing header. */
   onProvider?: (p: "groq" | "gemini") => void;
 };
 
 const GEMINI = { fast: ["gemini-flash-lite-latest", "gemini-flash-latest"], serious: ["gemini-flash-latest", "gemini-flash-lite-latest"] };
 const GROQ_MODEL = "openai/gpt-oss-120b";
+const GROQ_VISION_MODEL = "qwen/qwen3.8-27b"; // the open model there that reads images
 const RETRY_DELAYS = [1200, 3000];
 
 const LENIENT: SafetySetting[] = [
@@ -71,25 +74,27 @@ export async function ask<T = unknown>(opts: AskOptions): Promise<T> {
   throw lastError;
 }
 
-async function askGroq({ system, prompt, schema, temperature = 0.8, kind = "fast", effort }: AskOptions): Promise<string> {
+async function askGroq({ system, prompt, schema, temperature = 0.8, kind = "fast", effort, image }: AskOptions): Promise<string> {
   const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
     method: "POST",
     headers: { Authorization: `Bearer ${process.env.GROQ_API_KEY}`, "Content-Type": "application/json" },
     body: JSON.stringify({
-      model: process.env.GROQ_MODEL || GROQ_MODEL,
+      model: image ? GROQ_VISION_MODEL : process.env.GROQ_MODEL || GROQ_MODEL,
       messages: [
         { role: "system", content: system },
-        { role: "user", content: prompt },
+        image
+          ? { role: "user", content: [{ type: "text", text: prompt }, { type: "image_url", image_url: { url: `data:${image.mimeType};base64,${image.data}` } }] }
+          : { role: "user", content: prompt },
       ],
       temperature,
       max_completion_tokens: 1500,
-      reasoning_effort: effort ?? (kind === "fast" ? "low" : "medium"),
-      include_reasoning: false,
+      // The reasoning knobs belong to the gpt-oss models.
+      ...(image ? {} : { reasoning_effort: effort ?? (kind === "fast" ? "low" : "medium"), include_reasoning: false }),
       // Strict mode: the answer is guaranteed to match the schema.
       response_format: { type: "json_schema", json_schema: { name: "answer", strict: true, schema } },
     }),
     // If Groq is slow today, don't make you wait.
-    signal: AbortSignal.timeout(kind === "fast" ? 6000 : 15000),
+    signal: AbortSignal.timeout(image ? 15000 : kind === "fast" ? 6000 : 15000),
   });
   if (!res.ok) throw Object.assign(new Error(`Groq ${res.status}`), { status: res.status });
   const data = (await res.json()) as { choices?: { message?: { content?: string } }[] };
@@ -98,7 +103,7 @@ async function askGroq({ system, prompt, schema, temperature = 0.8, kind = "fast
   return text;
 }
 
-async function askGemini({ system, prompt, schema, temperature = 0.8, kind = "fast", lenient }: AskOptions): Promise<string> {
+async function askGemini({ system, prompt, schema, temperature = 0.8, kind = "fast", lenient, image }: AskOptions): Promise<string> {
   const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
   const models = [...GEMINI[kind]];
   if (process.env.GEMINI_MODEL) models.unshift(process.env.GEMINI_MODEL);
@@ -112,7 +117,7 @@ async function askGemini({ system, prompt, schema, temperature = 0.8, kind = "fa
     try {
       const res = await ai.models.generateContent({
         model: models[m],
-        contents: prompt,
+        contents: image ? [{ role: "user", parts: [{ inlineData: image }, { text: prompt }] }] : prompt,
         config: {
           systemInstruction: system,
           temperature,
@@ -121,7 +126,7 @@ async function askGemini({ system, prompt, schema, temperature = 0.8, kind = "fa
           ...(thinking ? { thinkingConfig: { thinkingLevel: thinking } } : {}),
           ...(lenient ? { safetySettings: LENIENT } : {}),
           // A stuck call falls through to Groq instead of hanging the request.
-          abortSignal: AbortSignal.timeout(kind === "fast" ? 8000 : 15000),
+          abortSignal: AbortSignal.timeout(kind === "fast" && !image ? 8000 : 15000),
         },
       });
       const text = (res.text ?? "").trim();

@@ -5,6 +5,7 @@ import { AnimatePresence, motion, useDragControls } from "framer-motion";
 import { X } from "lucide-react";
 import { EASE_SMOOTH, LEAVE } from "@/lib/motion";
 
+// Unused right now: the tray's own motion is defined below; nothing imports this.
 export const spring = { type: "spring", stiffness: 420, damping: 34, mass: 0.9 } as const;
 
 // Phones get a sheet that slides up; desktop gets a card that settles in
@@ -33,14 +34,13 @@ interface TrayProps {
   icon?: React.ReactNode;
   children: React.ReactNode;
   /** Dark, full-attention variant (used by the roast). */
-  tone?: "default" | "inverse";
 }
 
 /**
  * A sheet that rises from the bottom on phones and floats centred on desktop.
  * Drag the handle down to dismiss; Esc or the backdrop also close it.
  */
-export function Tray({ open, onClose, title, icon, children, tone = "default" }: TrayProps) {
+export function Tray({ open, onClose, title, icon, children }: TrayProps) {
   const drag = useDragControls();
   const desktop = useSyncExternalStore(subscribeWide, () => matchMedia(wide).matches, () => true);
   const motionSet = desktop ? CARD : SHEET;
@@ -59,7 +59,6 @@ export function Tray({ open, onClose, title, icon, children, tone = "default" }:
     };
   }, [open, onClose]);
 
-  const inverse = tone === "inverse";
 
   return (
     <AnimatePresence>
@@ -90,25 +89,21 @@ export function Tray({ open, onClose, title, icon, children, tone = "default" }:
               if (info.offset.y > 90 || info.velocity.y > 500) onClose();
             }}
             style={{ willChange: "transform" }}
-            className={`relative max-h-[88dvh] w-full overflow-hidden rounded-t-[14px] shadow-lift outline-none sm:max-w-[500px] sm:rounded-[14px] ${
-              inverse ? "bg-[#111110] text-[#ecebe6] [--ink:#ecebe6] [--ink-2:#a3a199] [--ink-3:#6b6a64] [--sunken:#232321] [--line:rgba(236,235,230,.1)] [--bg:#111110]" : "bg-paper text-ink"
-            }`}
+            className={`relative max-h-[88dvh] w-full overflow-hidden rounded-t-[14px] shadow-lift outline-none sm:max-w-[500px] sm:rounded-[14px] bg-paper text-ink`}
           >
             <div
               onPointerDown={(e) => drag.start(e)}
               className="flex cursor-grab touch-none justify-center pb-1 pt-2.5 active:cursor-grabbing sm:hidden"
             >
-              <span className={`h-1 w-9 rounded-full ${inverse ? "bg-white/20" : "bg-line-strong"}`} />
+              <span className="h-1 w-9 rounded-full bg-line-strong" />
             </div>
             <div className="flex items-center gap-2.5 px-5 pb-1 pt-2 sm:pt-5">
-              {icon && <span className={inverse ? "text-[var(--coral)]" : "text-ink-2"}>{icon}</span>}
+              {icon && <span className="text-ink-2">{icon}</span>}
               <h2 className="flex-1 text-[19px] font-semibold tracking-[-0.01em]">{title}</h2>
               <button
                 onClick={onClose}
                 aria-label="Close"
-                className={`flex h-8 w-8 items-center justify-center rounded-[8px] transition-[transform,background-color] active:scale-90 pointer-coarse:h-9 pointer-coarse:w-9 ${
-                  inverse ? "bg-white/10 hover:bg-white/15" : "bg-sunken hover:bg-line-strong"
-                }`}
+                className={`flex h-8 w-8 items-center justify-center rounded-[8px] transition-[transform,background-color] active:scale-90 pointer-coarse:h-9 pointer-coarse:w-9 bg-sunken hover:bg-line-strong`}
               >
                 <X size={15} strokeWidth={2.2} />
               </button>

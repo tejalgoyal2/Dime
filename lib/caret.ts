@@ -1,3 +1,4 @@
+// Unused right now: Dime no longer reads along at the caret; safe to delete.
 // Where the text caret sits in an input, in client coordinates, so Dime can read along.
 export function caretPoint(input: HTMLInputElement) {
   const r = input.getBoundingClientRect();

@@ -28,7 +28,9 @@ It's the rewrite of [WalletRIP](https://github.com/tejalgoyal2/WalletRIP), my fi
 
 **Life vs Lego.** Rent, groceries, your phone bill: Life. Bubble tea, a third pair of white sneakers, that 2am pizza: Lego. Disagree? Tap the coin to flip it. Dime remembers, so next time coffee goes where you put it.
 
-**Two numbers? It asks.** `got 310 airpods pro 34` is confusing even for humans. Dime highlights the price it thinks you meant and lets you tap the other one.
+**It knows which number is the price.** `6 milk 2%` is milk 2% for $6; `500ml coke 3` is a $3 coke. Got it wrong anyway? Tap the price on the reply and fix it.
+
+**Or show it the receipt.** Tap the camera (or paste or drop a photo) and it reads the store, the total and the date.
 
 **Big spends get the cash bill.** Anything $50 and up gets a little green bill so future you knows exactly where it went.
 
@@ -81,7 +83,7 @@ That's the whole API. Plain text or `{"text": "..."}` both work. Bank alerts wor
 | **App** | Next.js 16 (App Router), React 19, TypeScript strict |
 | **Hosting** | Cloudflare Workers via [OpenNext](https://opennext.js.org/cloudflare) |
 | **Database + auth** | Supabase (Postgres with row-level security) |
-| **AI** | Groq (gpt-oss-120b) for quick reads and jokes, Google Gemini (always the latest Flash) for advice; each backs the other up |
+| **AI** | Google Gemini (the latest Flash-Lite for quick reads and receipts, the latest Flash for advice), with Groq as backup |
 | **Rate limiting** | Upstash Redis |
 | **Validation** | Zod v4, same schemas on client and server |
 | **Look and feel** | Tailwind v4, Framer Motion, dnd-kit, NumberFlow, cmdk, Sonner |
@@ -89,7 +91,7 @@ That's the whole API. Plain text or `{"text": "..."}` both work. Bank alerts wor
 
 The browser never writes to the database. Everything goes through API routes that check who you are, validate the input, and rate-limit you.
 
-**Routes:** `/api/expenses`, `/api/parse`, `/api/insights`, `/api/roast`, `/api/advice`, `/api/analyze-subs`, `/api/signup`, `/api/ingest`, `/api/quick-add`, `/api/tokens`, `/api/preferences`, `/api/profile`
+**Routes:** `/api/expenses`, `/api/parse`, `/api/receipt`, `/api/insights`, `/api/roast`, `/api/advice`, `/api/analyze-subs`, `/api/signup`, `/api/ingest`, `/api/quick-add`, `/api/tokens`, `/api/preferences`, `/api/profile`, `/api/account`, `/api/export`
 
 ```
 app/
@@ -103,7 +105,8 @@ lib/
   ingest.ts       the auto-log pipeline
   life-lego.ts    how Life vs Lego gets decided, and remembered
   checkup.ts      the money check-up's vitals
-  gemini.ts       every AI call goes through here
+  ai.ts           every AI call goes through here (Gemini, then Groq)
+  parse-prompt.ts what Tom is told when you log something
   amounts.ts      finding the price in what you typed
   rate-limit.ts   all the limits in one place
 supabase/         SQL to run once (keep-alive table, dashboard + auto-log tables)
@@ -134,9 +137,9 @@ cp .env.example .env.local   # every variable is explained in there
 npm run dev
 ```
 
-You'll need a [Supabase](https://supabase.com) project, a [Gemini API key](https://aistudio.google.com/apikey) and an [Upstash Redis](https://upstash.com) database. All free tiers.
+You'll need a [Supabase](https://supabase.com) project, a [Gemini API key](https://aistudio.google.com/apikey) (a [Groq key](https://console.groq.com/keys) is an optional backup) and an [Upstash Redis](https://upstash.com) database. All free tiers.
 
-Then, once, in the Supabase SQL editor: run `supabase/keepalive.sql` and `supabase/migrations/002_dashboard_autolog.sql`, and turn off **Authentication → Sign In / Providers → Allow new users to sign up** (Dime makes accounts itself, after the invite check).
+Then, once, in the Supabase SQL editor: run `supabase/keepalive.sql`, `supabase/migrations/001_expenses.sql` and `supabase/migrations/002_dashboard_autolog.sql`, and turn off **Authentication → Sign In / Providers → Allow new users to sign up** (Dime makes accounts itself, after the invite check).
 
 ```bash
 npm run build      # production build

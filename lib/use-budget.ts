@@ -12,7 +12,7 @@ type Ctx = { settings: Settings; update: (patch: Partial<Settings>) => void };
 
 const SettingsContext = createContext<Ctx | null>(null);
 
-export function SettingsProvider({ initial, children }: { initial: Settings; children: React.ReactNode }) {
+export function SettingsProvider({ initial, tz, children }: { initial: Settings; tz: string | null; children: React.ReactNode }) {
   const [settings, setSettings] = useState(initial);
   const { toast } = useToast();
 
@@ -30,6 +30,13 @@ export function SettingsProvider({ initial, children }: { initial: Settings; chi
     },
     [toast]
   );
+
+  // Keep your time zone on the account, so auto-logged bank texts get your
+  // date (the server runs on UTC). Only sent when it changes.
+  useEffect(() => {
+    const here = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if (here && here !== tz) void fetch("/api/profile", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ tz: here }) });
+  }, [tz]);
 
   // Before this, both lived in the browser. Move them to the account once.
   useEffect(() => {

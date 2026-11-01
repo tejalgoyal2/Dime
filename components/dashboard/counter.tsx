@@ -19,6 +19,8 @@ import { useBudget, usePunchGoal } from "@/lib/use-budget";
 import type { ExpenseRow } from "@/lib/supabase/types";
 import type { ParsedExpense } from "@/lib/schemas/expense";
 import { TypeCoin } from "./cells/type-coin";
+import { shrinkPhoto } from "@/lib/photo";
+import { PriceFix } from "./price-fix";
 
 const PLACEHOLDERS = ["coffee & croissant 7", "uber home 18", "groceries at freshco 84", "netflix 16.99", "2am pizza 22, again", "gym 50", "bubble tea 8"];
 
@@ -32,7 +34,7 @@ const subscribeCoarse = (cb: () => void) => {
 // `fresh` is true until you start typing again: the entrance effects (words
 // fading in, the bill popping) play once, and coming back to the reply after
 // clearing the box just shows it again quietly.
-type Reply = { you: string; items: ExpenseRow[]; text: string; en?: string; zh?: string; tone?: "lego"; egg?: boolean; fresh: boolean } | null;
+type Reply = { you: string; photo?: string; items: ExpenseRow[]; text: string; en?: string; zh?: string; tone?: "lego"; egg?: boolean; fresh: boolean } | null;
 
 function greeting(hour: number, name: string) {
   if (hour < 0) return `Hey ${name}! What did we buy?`;
@@ -64,6 +66,9 @@ export function Counter({ callsign, arranging, onLogged }: { callsign: string; a
   // Something big logged: its bill hops into the month total.
   const [rain, setRain] = useState(0);
   const [flyAmount, setFlyAmount] = useState(0);
+  // A receipt photo on its way: shown as your message while Tom reads it.
+  const [pending, setPending] = useState<{ you: string; photo?: string } | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
   const stopRain = useCallback(() => setRain(0), []);
   const inputRef = useRef<HTMLInputElement>(null);
   const mirrorRef = useRef<HTMLDivElement>(null);
@@ -116,7 +121,7 @@ export function Counter({ callsign, arranging, onLogged }: { callsign: string; a
   } else if (focused && typedAmount >= 150) {
     line = `${money(typedAmount, 0)}?? Okay… go on.`;
   } else if (focused) {
-    line = input ? "Mm-hm. Hit enter when you're done." : "Go on, what'd you get?";
+    line = input ? "Mm-hm. Hit enter when you're done." : "Go on, what'd you get? Or show me the receipt.";
   } else if (state.isLoading) {
     line = "One sec, opening your book…";
   } else if (state.expenses.length === 0) {
@@ -148,17 +153,36 @@ export function Counter({ callsign, arranging, onLogged }: { callsign: string; a
     return (await saveRes.json()) as ExpenseRow[];
   }
 
-  async function send(raw: string) {
+  function send(raw: string) {
     const text = raw.trim();
     if (!text || busy) return;
+    // One round trip: the server reads it and saves it in the same request.
+    void log({ you: text }, (headers) => fetch("/api/parse?save=1", { method: "POST", headers, body: text }));
+  }
+
+  // A receipt photo: shrunk here first, then read and saved by the server.
+  async function sendPhoto(file: File) {
+    if (busy || !file.type.startsWith("image/")) return;
+    let blob: Blob;
+    try {
+      blob = await shrinkPhoto(file);
+    } catch {
+      toast("Couldn't open that photo. Try a JPEG or PNG?", "error");
+      return;
+    }
+    const photo = URL.createObjectURL(blob);
+    void log({ you: "Receipt", photo }, (headers) => fetch("/api/receipt", { method: "POST", headers: { ...headers, "Content-Type": blob.type }, body: blob }));
+  }
+
+  async function log(you: { you: string; photo?: string }, request: (headers: Record<string, string>) => Promise<Response>) {
     setBusy(true);
     setReply(null);
+    setPending(you.photo ? you : null);
     setPasted(false);
     try {
       // Your date and hour, so "yesterday" and "2am pizza" mean your time, not the server's.
       const headers: Record<string, string> = { [LOCAL_DATE_HEADER]: localISODate(), "x-dime-hour": String(new Date().getHours()) };
-      // One round trip: the server reads it and saves it in the same request.
-      const parseRes = await fetch("/api/parse?save=1", { method: "POST", headers, body: text });
+      const parseRes = await request(headers);
       if (!parseRes.ok) {
         const data = (await parseRes.json().catch(() => ({}))) as { error?: string };
         throw new Error(parseRes.status === 429 ? "Slow down a little. Try again in a minute." : data.error || "Couldn't read that");
@@ -172,24 +196,25 @@ export function Counter({ callsign, arranging, onLogged }: { callsign: string; a
       const zh = parsed[0]?.comment_zh || undefined;
       setLang("orig");
       if (!valid.length) {
-        setReply({ you: text, items: [], text: comment || "I didn't catch a price in that. How much was it?", en: comment ? en : undefined, zh: comment ? zh : undefined, fresh: true });
+        setReply({ ...you, items: [], text: comment || "I didn't catch a price in that. How much was it?", en: comment ? en : undefined, zh: comment ? zh : undefined, fresh: true });
         return;
       }
       const saved = savedHere ?? (await saveSeparately(valid));
       addExpenses(saved);
       onLogged(saved.map((x) => x.id));
-      setInput("");
+      if (!you.photo) setInput("");
       const egg = saved.some((x) => isSixSeven(x.amount));
       if (saved.some((x) => x.amount >= BIG_SPEND)) {
         setFlyAmount(saved.reduce((t, x) => t + x.amount, 0));
         setRain((n) => n + 1);
       }
-      setReply({ you: text, items: saved, text: egg ? "SIX SEVENNN 🤷 okay okay, logged." : comment || "Noted.", en: egg || !comment ? undefined : en, zh: egg || !comment ? undefined : zh, egg, fresh: true });
+      setReply({ ...you, items: saved, text: egg ? "SIX SEVENNN 🤷 okay okay, logged." : comment || "Noted.", en: egg || !comment ? undefined : en, zh: egg || !comment ? undefined : zh, egg, fresh: true });
     } catch (err) {
-      setReply({ you: text, items: [], text: err instanceof Error ? err.message : "Something broke on my side.", tone: "lego", fresh: true });
+      setReply({ ...you, items: [], text: err instanceof Error ? err.message : "Something broke on my side.", tone: "lego", fresh: true });
       toast(err instanceof Error ? err.message : "Something broke", "error");
     } finally {
       setBusy(false);
+      setPending(null);
       inputRef.current?.focus();
     }
   }
@@ -222,13 +247,32 @@ export function Counter({ callsign, arranging, onLogged }: { callsign: string; a
     else toast(`Got it. ${item.item_name} goes in ${type === "Want" ? "Lego" : "Life"} from now on.`);
   }
 
+  async function fixPrice(item: ExpenseRow, amount: number) {
+    setReply((r) => r && { ...r, items: r.items.map((x) => (x.id === item.id ? { ...x, amount } : x)) });
+    if (await updateExpense(item.id, { amount })) toast(`Fixed. ${item.item_name} is ${money(amount)}.`);
+    else {
+      setReply((r) => r && { ...r, items: r.items.map((x) => (x.id === item.id ? { ...x, amount: item.amount } : x)) });
+      toast("Couldn't fix that. Try again?", "error");
+    }
+  }
+
   async function undo() {
     if (!reply) return;
     const items = reply.items;
-    setReply((r) => r && { ...r, items: [], text: "Done. It never happened. I saw nothing." });
+    // The undo line comes in every language, so translating can't bring back
+    // the old roast about something that no longer exists.
+    setReply((r) => r && { ...r, items: [], text: "Ho gaya. Kuch hua hi nahi, maine kuch nahi dekha.", en: "Done. It never happened. I saw nothing.", zh: "搞定。什么都没发生，我什么也没看见。", egg: false });
     const oks = await Promise.all(items.map((x) => deleteExpense(x.id)));
     if (!oks.every(Boolean)) toast("Couldn't undo all of it", "error");
   }
+
+  // Your side of the conversation: the photo being read, or the last thing you sent.
+  const mine = busy ? pending : reply && !input ? reply : null;
+  // Let go of the last photo's preview once it's off screen.
+  const shown = reply?.photo;
+  useEffect(() => () => {
+    if (shown) URL.revokeObjectURL(shown);
+  }, [shown]);
 
   const pace = budget ? Math.min(1, new Date().getDate() / new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()) : 0;
 
@@ -241,16 +285,22 @@ export function Counter({ callsign, arranging, onLogged }: { callsign: string; a
           <div className="flex min-h-[112px] flex-col justify-end gap-2.5 sm:min-h-[132px]">
             <Speaker />
             <AnimatePresence initial={false} mode="popLayout">
-              {reply && !input && !busy && (
+              {mine && (
                 <motion.div
-                  key={"you" + reply.you}
+                  // Same key while a photo is read and once it's logged, so it doesn't re-enter.
+                  key={"you" + mine.you + (mine.photo ?? "")}
                   layout="position"
-                  initial={reply.fresh ? false : { opacity: 0 }}
+                  initial={reply?.fresh === false && !busy ? { opacity: 0 } : false}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0, y: -4, transition: LEAVE_QUICK }}
                   transition={{ duration: 0.2 }}
                 >
-                  <Bubble from="you" text={reply.you} still={!reply.fresh} />
+                  <Bubble from="you" text={mine.photo ? "Receipt 📸" : mine.you} still={reply?.fresh === false && !busy}>
+                    {mine.photo && (
+                      // eslint-disable-next-line @next/next/no-img-element -- a local blob preview, nothing to optimise
+                      <img src={mine.photo} alt="Your receipt" className="mt-2 max-h-24 w-auto max-w-[140px] rounded-[6px] object-contain" />
+                    )}
+                  </Bubble>
                 </motion.div>
               )}
               {busy ? (
@@ -278,7 +328,7 @@ export function Counter({ callsign, arranging, onLogged }: { callsign: string; a
                             </span>
                           )}
                           <span className="min-w-0 truncate font-medium">{x.item_name}</span>
-                          <span className="shrink-0 font-semibold">{money(x.amount)}</span>
+                          <PriceFix amount={x.amount} onFix={(amount) => fixPrice(x, amount)} />
                         </span>
                       ))}
                       <button onClick={undo} className="rounded-[8px] px-2.5 py-1.5 text-[14px] font-semibold text-ink-2 hover:bg-oat hover:text-ink">
@@ -298,7 +348,18 @@ export function Counter({ callsign, arranging, onLogged }: { callsign: string; a
             </AnimatePresence>
           </div>
 
-          <form onSubmit={submit} className="relative mt-4 sm:mt-5">
+          <form
+            onSubmit={submit}
+            // Drop a receipt photo on the box to log it.
+            onDragOver={(e) => e.dataTransfer.types.includes("Files") && e.preventDefault()}
+            onDrop={(e) => {
+              const image = [...e.dataTransfer.files].find((f) => f.type.startsWith("image/"));
+              if (!image) return;
+              e.preventDefault();
+              void sendPhoto(image);
+            }}
+            className="relative mt-4 sm:mt-5"
+          >
             <input
               ref={inputRef}
               value={input}
@@ -310,6 +371,13 @@ export function Counter({ callsign, arranging, onLogged }: { callsign: string; a
                 requestAnimationFrame(syncMirror);
               }}
               onPaste={(e) => {
+                // A pasted screenshot or photo of a receipt gets read, not typed.
+                const image = [...e.clipboardData.files].find((f) => f.type.startsWith("image/"));
+                if (image) {
+                  e.preventDefault();
+                  void sendPhoto(image);
+                  return;
+                }
                 const t = e.clipboardData.getData("text");
                 if (t.length > 40 && /\$|cad|charged|purchase|debit|card|spent/i.test(t)) setPasted(true);
               }}
@@ -367,14 +435,47 @@ export function Counter({ callsign, arranging, onLogged }: { callsign: string; a
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -8 }}
                   transition={{ duration: 0.25 }}
-                  className="pointer-events-none absolute inset-y-0 left-4 right-16 flex items-center overflow-hidden whitespace-nowrap text-[17px] font-medium text-ink-3 sm:left-6 sm:right-auto sm:text-[20px]"
+                  className="pointer-events-none absolute inset-y-0 left-4 right-[104px] flex items-center overflow-hidden whitespace-nowrap text-[17px] font-medium text-ink-3 sm:left-6 sm:right-auto sm:text-[20px]"
                 >
                   {PLACEHOLDERS[ph]}
                 </motion.span>
               </AnimatePresence>
             )}
+            {/* A receipt photo instead of typing: camera or library on phones. */}
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              hidden
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                e.target.value = "";
+                if (file) void sendPhoto(file);
+              }}
+            />
+            <AnimatePresence>
+              {!input && !busy && (
+                <motion.button
+                  key="photo"
+                  type="button"
+                  initial={{ opacity: 0, scale: 0.85 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.85, transition: LEAVE_QUICK }}
+                  transition={{ duration: 0.18, ease: EASE_OUT }}
+                  onClick={() => fileRef.current?.click()}
+                  aria-label="Log a receipt photo"
+                  title="Snap or pick a receipt. I'll read the store and the total"
+                  className="absolute right-[54px] top-1.5 flex h-11 w-11 items-center justify-center rounded-[8px] text-ink-3 transition-colors hover:bg-oat hover:text-ink sm:right-[62px] sm:top-2.5"
+                >
+                  <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                    <path d="M4 8.5A2.5 2.5 0 0 1 6.5 6h1.2l1.4-2h5.8l1.4 2h1.2A2.5 2.5 0 0 1 20 8.5v9a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 17.5Z" />
+                    <circle cx="12" cy="13" r="3.5" />
+                  </svg>
+                </motion.button>
+              )}
+            </AnimatePresence>
             {!input && !focused && (
-              <kbd className="pointer-events-none absolute right-[76px] top-1/2 hidden -translate-y-1/2 rounded-[8px] border border-line-strong px-2 py-0.5 text-[13px] font-semibold text-ink-3 sm:block pointer-coarse:hidden">
+              <kbd className="pointer-events-none absolute right-[112px] top-1/2 hidden -translate-y-1/2 rounded-[8px] border border-line-strong px-2 py-0.5 text-[13px] font-semibold text-ink-3 sm:block pointer-coarse:hidden">
                 /
               </kbd>
             )}

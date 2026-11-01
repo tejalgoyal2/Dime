@@ -16,6 +16,7 @@ export const metadata: Metadata = {
   title: "Dime",
   description: "Text it what you spent. It sorts Life from Lego, keeps the receipt, and roasts you a little.",
   metadataBase: new URL("https://dime.tgoyal.me"),
+  manifest: "/manifest.json",
   openGraph: {
     title: "Dime",
     description: "Every cent has a story. Usually a bad one.",

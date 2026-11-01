@@ -4,7 +4,6 @@ import { contentSecurityPolicy, newNonce } from "@/lib/csp";
 
 const PUBLIC_PATHS = [
   "/login",
-  "/auth",
   "/api/quick-add",
   "/api/signup",
   "/api/ingest", // token-authenticated

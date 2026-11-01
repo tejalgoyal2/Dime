@@ -10,7 +10,7 @@ import { apiError } from "@/lib/api-error";
 export async function DELETE(request: NextRequest) {
   try {
     if (!isValidOrigin(request.headers)) return apiError("Invalid origin", "INVALID_ORIGIN", 403);
-    const { allowed, retryAfter } = await checkRateLimit(getRequestIp(request.headers), "strict");
+    const { allowed, retryAfter } = await checkRateLimit(`delete:${getRequestIp(request.headers)}`, "strict");
     if (!allowed) return apiError("Too many attempts. Try again later.", "RATE_LIMITED", 429, retryAfter);
 
     const supabase = await createClient();

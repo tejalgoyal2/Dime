@@ -20,7 +20,8 @@ type View = "bars" | "lines" | "running";
 // cubic, Fritsch–Carlson), so a curve can't dip below zero between days.
 function smooth(pts: [number, number][]) {
   const n = pts.length;
-  if (n < 2) return "";
+  // One point (the 1st of the month) is just a place to start; none is nothing.
+  if (n < 2) return n ? `M${pts[0][0]},${pts[0][1]}` : "";
   const dx = pts.slice(1).map((p, i) => p[0] - pts[i][0]);
   const m = pts.slice(1).map((p, i) => (p[1] - pts[i][1]) / dx[i]);
   const t = pts.map((_, i) => (i === 0 ? m[0] : i === n - 1 ? m[n - 2] : m[i - 1] * m[i] <= 0 ? 0 : (m[i - 1] + m[i]) / 2));
@@ -264,7 +265,7 @@ export function TrendsCell() {
                     return (
                       <g key={k + range}>
                         <motion.path
-                          d={`${line} L${pts.at(-1)?.[0] ?? 0},${H} L${pts[0]?.[0] ?? 0},${H} Z`}
+                          d={line ? `${line} L${pts.at(-1)![0]},${H} L${pts[0][0]},${H} Z` : undefined}
                           fill={`var(--${k})`}
                           initial={{ opacity: 0 }}
                           animate={{ opacity: 0.08 }}

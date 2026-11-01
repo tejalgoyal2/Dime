@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { isValidOrigin } from "@/lib/origin-check";
 import { apiError } from "@/lib/api-error";
+import { tooFast } from "@/lib/rate-limit";
 import { sanitizeLayout } from "@/lib/dashboard/layout";
 
 // Per-user dashboard layout. Needs supabase/migrations/002_dashboard_autolog.sql;
@@ -27,6 +28,8 @@ export async function PUT(request: NextRequest) {
   if (!isValidOrigin(request.headers)) {
     return apiError("Invalid origin", "INVALID_ORIGIN", 403);
   }
+  const slow = await tooFast(request.headers);
+  if (slow) return slow;
   const supabase = await createClient();
   const {
     data: { user },

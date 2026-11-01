@@ -369,7 +369,7 @@ export default function LoginPage() {
                         autoComplete="username"
                         autoCapitalize="none"
                         spellCheck={false}
-                        maxLength={40}
+                        maxLength={32}
                         placeholder="Your name"
                         className={`${box} fade-swap w-full`}
                       />

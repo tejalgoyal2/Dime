@@ -3,6 +3,7 @@ import { z } from "zod/v4";
 import { createClient } from "@/lib/supabase/server";
 import { isValidOrigin } from "@/lib/origin-check";
 import { apiError } from "@/lib/api-error";
+import { tooFast } from "@/lib/rate-limit";
 import { generateToken, sha256Hex } from "@/lib/tokens";
 
 // Manage personal auto-log tokens. Runs as the signed-in user, so RLS on
@@ -29,6 +30,8 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   if (!isValidOrigin(request.headers)) return apiError("Invalid origin", "INVALID_ORIGIN", 403);
+  const slow = await tooFast(request.headers);
+  if (slow) return slow;
   const { supabase, user } = await session();
   if (!user) return apiError("Unauthorized", "UNAUTHORIZED", 401);
 
@@ -52,6 +55,8 @@ export async function POST(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   if (!isValidOrigin(request.headers)) return apiError("Invalid origin", "INVALID_ORIGIN", 403);
+  const slow = await tooFast(request.headers);
+  if (slow) return slow;
   const { supabase, user } = await session();
   if (!user) return apiError("Unauthorized", "UNAUTHORIZED", 401);
   const body = z.object({ id: z.string().uuid() }).safeParse(await request.json().catch(() => ({})));

@@ -1,3 +1,4 @@
+// Unused right now: app/error.tsx catches page crashes now; safe to delete.
 "use client";
 
 import { Component, type ReactNode } from "react";

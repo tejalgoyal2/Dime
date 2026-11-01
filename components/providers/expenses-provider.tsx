@@ -127,7 +127,12 @@ export function ExpensesProvider({ children }: { children: React.ReactNode }) {
       pending.clear();
     };
     window.addEventListener("pagehide", flush);
-    return () => window.removeEventListener("pagehide", flush);
+    // Signing out leaves without a pagehide: menu-tray asks for a flush first.
+    window.addEventListener("dime:flush-deletes", flush);
+    return () => {
+      window.removeEventListener("pagehide", flush);
+      window.removeEventListener("dime:flush-deletes", flush);
+    };
   }, []);
 
   function deleteWithUndo(expense: ExpenseRow) {

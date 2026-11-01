@@ -64,6 +64,8 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     const expenses = Array.isArray(body) ? body : [body];
+    // An import is a few dozen rows at most; refuse floods.
+    if (expenses.length > 100) return apiError("Too many at once (100 max)", "VALIDATION_FAILED", 413);
 
     const validated = expenses.map((e) => createExpenseSchema.safeParse(e));
     const failed = validated.find((r) => !r.success);
@@ -87,7 +89,7 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       console.error(error);
-      return apiError("Couldn't load your expenses", "INTERNAL_ERROR", 500);
+      return apiError("Couldn't save that", "INTERNAL_ERROR", 500);
     }
 
     return NextResponse.json(data as ExpenseRow[], { status: 201 });
@@ -102,6 +104,8 @@ export async function DELETE(request: NextRequest) {
     if (!isValidOrigin(request.headers)) {
       return apiError("Invalid origin", "INVALID_ORIGIN", 403);
     }
+    const limit = await checkRateLimit(getRequestIp(request.headers));
+    if (!limit.allowed) return apiError("Rate limited", "RATE_LIMITED", 429, limit.retryAfter);
 
     const supabase = await createClient();
     const {
@@ -124,7 +128,7 @@ export async function DELETE(request: NextRequest) {
 
     if (error) {
       console.error(error);
-      return apiError("Couldn't load your expenses", "INTERNAL_ERROR", 500);
+      return apiError("Couldn't delete that", "INTERNAL_ERROR", 500);
     }
 
     return NextResponse.json({ success: true });
@@ -139,6 +143,8 @@ export async function PATCH(request: NextRequest) {
     if (!isValidOrigin(request.headers)) {
       return apiError("Invalid origin", "INVALID_ORIGIN", 403);
     }
+    const limit = await checkRateLimit(getRequestIp(request.headers));
+    if (!limit.allowed) return apiError("Rate limited", "RATE_LIMITED", 429, limit.retryAfter);
 
     const supabase = await createClient();
     const {
@@ -168,7 +174,7 @@ export async function PATCH(request: NextRequest) {
 
     if (error) {
       console.error(error);
-      return apiError("Couldn't load your expenses", "INTERNAL_ERROR", 500);
+      return apiError("Couldn't save that change", "INTERNAL_ERROR", 500);
     }
 
     if (!data?.length) {

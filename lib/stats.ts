@@ -34,6 +34,7 @@ export function monthSummary(expenses: ExpenseRow[], now = new Date()) {
   };
 }
 
+// Unused right now: the cards compute their own category totals.
 export function topCategories(expenses: ExpenseRow[], limit = 5) {
   const totals = new Map<string, { total: number; count: number; emoji: string }>();
   for (const e of expenses) {
@@ -48,12 +49,14 @@ export function topCategories(expenses: ExpenseRow[], limit = 5) {
     .slice(0, limit);
 }
 
+// Unused right now: trends.tsx builds its own day buckets.
 export function dailyTotals(expenses: ExpenseRow[]) {
   const map = new Map<string, number>();
   for (const e of expenses) map.set(e.date, (map.get(e.date) ?? 0) + (e.amount ?? 0));
   return map;
 }
 
+// Unused right now: the punch card counts days per week (punchStats) instead of a streak.
 // Consecutive days with at least one expense, ending today or yesterday.
 export function loggingStreak(expenses: ExpenseRow[], now = new Date()) {
   const dates = new Set(expenses.map((e) => e.date));
@@ -88,6 +91,7 @@ export function monthDays(expenses: ExpenseRow[], now = new Date()): DayBar[] {
   return days;
 }
 
+// Unused right now: NumberFlow (components/ui/money.tsx) splits dollars and cents now.
 export function splitMoney(v: number) {
   const [whole, cents] = Math.abs(v).toFixed(2).split(".");
   return { whole: "$" + Number(whole).toLocaleString("en-US"), cents };
@@ -113,6 +117,7 @@ export function weekdayAverages(expenses: ExpenseRow[], weeks = 12) {
   return totals.map((t) => t / weeks);
 }
 
+// Unused right now: no card shows regulars any more.
 // The things you buy most often lately.
 export function regulars(expenses: ExpenseRow[], limit = 4) {
   const from = daysAgo(90);

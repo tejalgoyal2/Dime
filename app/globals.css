@@ -189,7 +189,8 @@
   --color-butter: var(--butter);
   --color-danger: var(--danger);
 
-  /* Older names, still used by the trays. */
+  /* Older names. surface and sunken are still used by the trays; bg, chili
+     and need are unused right now (kept as aliases, safe to delete). */
   --color-bg: var(--oat);
   --color-surface: var(--paper);
   --color-sunken: var(--panel);
@@ -402,7 +403,6 @@ input[type="number"] {
 
 
 
-/* 6-7: the bubble does the hands. */
 
 /*
  * Login motion, in CSS so /login ships no animation library. The springs are
@@ -443,6 +443,7 @@ input[type="number"] {
 }
 @keyframes typing-pop { from { opacity: 0; transform: translateY(6px) scale(0.8); } }
 /* The reply box swaps: out up, in from below. */
+/* Unused right now: the login reply box fades instead (.fade-swap). */
 .swap-in { --y: 8px; animation: rise 0.18s cubic-bezier(0.42, 0, 0.58, 1) both; }
 /* Send: shrinks while there's nothing to send, squishes when pressed. */
 .send { transition: scale 0.42s var(--spring-press), opacity 0.42s var(--spring-press); }
@@ -475,18 +476,26 @@ input[type="number"] {
 .text-swap { animation: text-swap 0.3s cubic-bezier(0.22, 1, 0.36, 1) both; }
 @keyframes text-swap { from { opacity: 0; translate: 0 3px; filter: blur(2px); } }
 @media (prefers-reduced-motion: reduce) { .word-roll, .text-swap { animation: none; } }
-/* Text morphs (components/ui/scramble.tsx). A decoding letter keeps its
-   real width (transparent) with a flickering glyph drawn over it, so the
-   line never reflows; the typing caret is a zero-width mark. */
-.decode-glyph { position: relative; color: transparent; }
-.decode-glyph::after { content: attr(data-g); position: absolute; left: 0; top: 0; color: var(--lego); opacity: 0.75; }
-.type-caret { position: relative; }
-.type-caret::after { content: ""; position: absolute; left: 0; top: 0.12em; height: 1.05em; width: 2px; border-radius: 1px; background: currentColor; opacity: 0.7; }
+/* Text morphs (components/ui/scramble.tsx). A changing letter keeps its
+   real width (its own ink made transparent) with the in-between glyph drawn
+   over it, so the line never reflows. */
+.glyph { position: relative; -webkit-text-fill-color: transparent; }
+.glyph::after { content: attr(data-g); position: absolute; left: 0; top: var(--y, 0); -webkit-text-fill-color: currentColor; opacity: var(--go, 1); }
+.g-decode::after { color: var(--lego); opacity: 0.75; }
+.g-flap::after { color: var(--lego); background: color-mix(in oklab, var(--ink) 9%, transparent); border-radius: 2px; box-shadow: inset 0 -0.5px 0 color-mix(in oklab, var(--ink) 25%, transparent); }
+.g-materialize::after { color: var(--lego); opacity: 0.7; }
+.g-rain::after { color: var(--lego); }
+.g-rain.landed::after { color: inherit; }
 
 /* Login reply box: only the contents fade when it changes. */
 .fade-swap { animation: fade-swap 0.24s ease-out both; }
 @keyframes fade-swap { from { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .fade-swap { animation: none; } }
+
+/* "Reading…" while the import is read: a soft pulse. */
+.shimmer { animation: shimmer 1.2s ease-in-out infinite; }
+@keyframes shimmer { 50% { opacity: 0.45; } }
+@media (prefers-reduced-motion: reduce) { .shimmer { animation: none; } }
 
 /* The (i) explainer note: a quick, soft appearance. */
 .info-pop { animation: info-pop 0.18s cubic-bezier(0.22, 1, 0.36, 1) both; }

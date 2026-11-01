@@ -1,3 +1,4 @@
+import { apiError } from "@/lib/api-error";
 import { Ratelimit, type Duration } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 
@@ -70,4 +71,10 @@ export function getRequestIp(headers: Headers): string {
   const forwarded = headers.get("x-forwarded-for");
   if (forwarded) return forwarded.split(",")[0].trim();
   return headers.get("x-real-ip") ?? "127.0.0.1";
+}
+
+/** For write routes: a ready 429 response when this IP is going too fast, else null. */
+export async function tooFast(headers: Headers) {
+  const { allowed, retryAfter } = await checkRateLimit(getRequestIp(headers));
+  return allowed ? null : apiError("Slow down a little", "RATE_LIMITED", 429, retryAfter);
 }

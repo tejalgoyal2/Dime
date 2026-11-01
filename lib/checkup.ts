@@ -15,7 +15,9 @@ export type Vital = {
 
 const fmt = (n: number) => `$${Math.round(n).toLocaleString("en-CA")}`;
 
-export function checkup(expenses: ExpenseRow[], now = new Date()) {
+// `now` and `hourOf` default to the browser's clock; the server passes your
+// date and zone instead (it runs on UTC).
+export function checkup(expenses: ExpenseRow[], now = new Date(), hourOf = (iso: string) => new Date(iso).getHours()) {
   const monthKey = (d: Date) => localISODate(d).slice(0, 7);
   const thisKey = monthKey(now);
   const past = [1, 2, 3].map((n) => monthKey(new Date(now.getFullYear(), now.getMonth() - n, 1)));
@@ -49,7 +51,7 @@ export function checkup(expenses: ExpenseRow[], now = new Date()) {
 
   const timed = window.filter((e) => e.created_at && e.type === "Want");
   const late = timed.filter((e) => {
-    const h = new Date(e.created_at).getHours();
+    const h = hourOf(e.created_at);
     return h >= 21 || h < 4;
   });
   const lateShare = timed.length ? total(late) / Math.max(total(timed), 1) : 0;

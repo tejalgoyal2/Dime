@@ -1,3 +1,4 @@
+// Unused right now: the trays stopped calling AI endpoints directly (cells fetch themselves); safe to delete.
 "use client";
 
 import { useCallback, useState } from "react";

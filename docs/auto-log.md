@@ -149,7 +149,7 @@ Errors come back as JSON (`{ "error", "code", "retryAfter" }`):
 
 **Limits**, so nobody can run up the bill: 30 requests a minute per IP, 12 a minute per token, and 300 AI reads per person per day (shared with the app).
 
-**Privacy.** Dime sends the text to Google's Gemini to work out the item and price, saves the expense, and keeps a hash of alerts so it can spot duplicates. It doesn't keep the original message.
+**Privacy.** Dime sends the text to Google's Gemini (or Groq, if Gemini is busy) to work out the item and price, saves the expense, and keeps a hash of alerts so it can spot duplicates. It doesn't keep the original message.
 
 **Sorting.** If you've flipped something to Life or Lego before, auto-logged expenses with the same name follow your call.
 

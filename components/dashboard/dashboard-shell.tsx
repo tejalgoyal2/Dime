@@ -26,12 +26,13 @@ interface DashboardShellProps {
   animal: string | null;
   budget: number | null;
   punchGoal: number | null;
+  tz: string | null;
 }
 
-export function DashboardShell({ callsign, animal, budget, punchGoal }: DashboardShellProps) {
+export function DashboardShell({ callsign, animal, budget, punchGoal, tz }: DashboardShellProps) {
   return (
     <ExpensesProvider>
-      <SettingsProvider initial={{ budget, punchGoal }}>
+      <SettingsProvider initial={{ budget, punchGoal }} tz={tz}>
         <Shell callsign={callsign} savedAnimal={animal} />
       </SettingsProvider>
     </ExpensesProvider>

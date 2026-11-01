@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useExpenses } from "@/components/providers/expenses-provider";
 import { useToast } from "@/components/providers/toast-provider";
 import { checkup } from "@/lib/checkup";
+import { LOCAL_DATE_HEADER, localISODate } from "@/lib/dates";
 import { money } from "@/components/ui/money";
 import { Frame } from "./frame";
 
@@ -28,7 +29,11 @@ export function CheckupCell() {
   async function getAdvice() {
     setBusy(true);
     try {
-      const res = await fetch("/api/advice", { method: "POST" });
+      // Your date and zone, so the server's "this month" and "after 9pm" match the card's.
+      const res = await fetch("/api/advice", {
+        method: "POST",
+        headers: { [LOCAL_DATE_HEADER]: localISODate(), "x-dime-tz": Intl.DateTimeFormat().resolvedOptions().timeZone },
+      });
       const data = (await res.json().catch(() => ({}))) as Advice & { error?: string };
       if (!res.ok) throw new Error(data.error || "I'm out of breath. Ask me again in a minute.");
       setAdvice(data);

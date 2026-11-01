@@ -6,6 +6,7 @@ export type CellType = (typeof CELL_TYPES)[number];
 // Widths on a 12-column grid.
 export const SIZES = ["s", "m", "l", "xl"] as const;
 export type Size = (typeof SIZES)[number];
+// Unused right now: cell-grid.tsx maps sizes with its own SPAN_CLASS (Tailwind needs literal classes).
 export const SPAN: Record<Size, number> = { s: 4, m: 6, l: 8, xl: 12 };
 
 export type Cell = { id: CellType; size: Size; hidden?: boolean };

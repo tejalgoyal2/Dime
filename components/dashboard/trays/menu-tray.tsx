@@ -99,6 +99,8 @@ export function MenuTray({
   const router = useRouter();
 
   async function signOut() {
+    // Deletes still in their undo window go now, while you're still signed in.
+    window.dispatchEvent(new Event("dime:flush-deletes"));
     await createClient().auth.signOut();
     router.push("/login");
     router.refresh();

@@ -6,7 +6,8 @@ import { isValidOrigin } from "@/lib/origin-check";
 import { apiError } from "@/lib/api-error";
 import { ask, plain, S } from "@/lib/ai";
 import { checkup } from "@/lib/checkup";
-import { localISODate } from "@/lib/dates";
+import { ISO_DATE, LOCAL_DATE_HEADER, localISODate } from "@/lib/dates";
+import { hourIn, isTimeZone } from "@/lib/tz";
 import type { ExpenseRow } from "@/lib/supabase/types";
 
 // The money check-up's advice. Reads your own last four months on the server
@@ -67,7 +68,11 @@ export async function POST(request: NextRequest) {
       .limit(3000);
     if (error) return apiError("Couldn't read your expenses", "INTERNAL_ERROR", 500);
 
-    const { summary, enough } = checkup((data ?? []) as ExpenseRow[]);
+    // Your date and zone from the browser, so "this month" and "after 9pm" are yours.
+    const tz = request.headers.get("x-dime-tz") ?? "";
+    const day = request.headers.get(LOCAL_DATE_HEADER) ?? "";
+    const now = ISO_DATE.test(day) ? new Date(`${day}T12:00:00`) : new Date();
+    const { summary, enough } = checkup((data ?? []) as ExpenseRow[], now, isTimeZone(tz) ? (iso) => hourIn(iso, tz) : undefined);
     if (!enough) return apiError("Log a couple of weeks first, then I'll have real advice.", "VALIDATION_FAILED", 400);
 
     const monthly = Number(user.user_metadata?.budget) || null;

@@ -88,7 +88,7 @@ export function ImportTray({ open, onClose }: { open: boolean; onClose: () => vo
           </p>
           <textarea
             value={text}
-            onChange={(e) => setText(e.target.value.slice(0, 5000))}
+            onChange={(e) => setText(e.target.value.slice(0, 2000))}
             placeholder={"coffee 4.50\nuber eats 32\nphone bill $65 on the 3rd"}
             className="h-40 w-full resize-none rounded-[10px] bg-sunken px-4 py-3 text-[15px] text-ink outline-none placeholder:text-ink-3 focus:ring-2 focus:ring-ink pointer-coarse:text-[16px]"
           />
