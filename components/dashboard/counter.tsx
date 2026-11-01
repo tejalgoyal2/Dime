@@ -29,7 +29,10 @@ const subscribeCoarse = (cb: () => void) => {
   return () => m.removeEventListener("change", cb);
 };
 
-type Reply = { you: string; items: ExpenseRow[]; text: string; en?: string; zh?: string; tone?: "lego"; egg?: boolean } | null;
+// `fresh` is true until you start typing again: the entrance effects (words
+// fading in, the bill popping) play once, and coming back to the reply after
+// clearing the box just shows it again quietly.
+type Reply = { you: string; items: ExpenseRow[]; text: string; en?: string; zh?: string; tone?: "lego"; egg?: boolean; fresh: boolean } | null;
 
 function greeting(hour: number, name: string) {
   if (hour < 0) return `Hey ${name}! What did we buy?`;
@@ -56,8 +59,6 @@ export function Counter({ callsign, arranging, onLogged }: { callsign: string; a
   const [ph, setPh] = useState(0);
   const [pasted, setPasted] = useState(false);
   const [editingBudget, setEditingBudget] = useState(false);
-  // Which number is the price, when you typed more than one.
-  const [chosen, setChosen] = useState<number | null>(null);
   // Which language my Hinglish reply is showing in.
   const [lang, setLang] = useState<Lang>("orig");
   // Something big logged: its bill hops into the month total.
@@ -67,6 +68,10 @@ export function Counter({ callsign, arranging, onLogged }: { callsign: string; a
   const inputRef = useRef<HTMLInputElement>(null);
   const mirrorRef = useRef<HTMLDivElement>(null);
   const hour = useSyncExternalStore(noop, () => new Date().getHours(), () => -1);
+  // Dates come from your browser, never the server: the server runs on UTC,
+  // which is already tomorrow (or next month) on a Vancouver evening, and a
+  // page that disagrees with itself has to be thrown away and redrawn.
+  const month = useSyncExternalStore(noop, () => format(new Date(), "MMMM"), () => null);
   // Touch screens drag cards with a press and hold.
   const touch = useSyncExternalStore(subscribeCoarse, () => matchMedia("(pointer: coarse)").matches, () => false);
   const name = callsign.charAt(0).toUpperCase() + callsign.slice(1);
@@ -93,7 +98,7 @@ export function Counter({ callsign, arranging, onLogged }: { callsign: string; a
   const punch = punchStats(state.expenses, goal ?? 3);
   const last = state.expenses[0]?.date;
   const gap = last ? differenceInCalendarDays(new Date(), parseISO(last)) : null;
-  const price = pickAmount(input, chosen);
+  const price = pickAmount(input);
   const typedAmount = price.picked?.value ?? 0;
 
   // What Dime says and how he looks, most specific first.
@@ -106,8 +111,6 @@ export function Counter({ callsign, arranging, onLogged }: { callsign: string; a
     line = inLang(lang, reply.text, reply.en, reply.zh);
   } else if (focused && pasted && input) {
     line = "Ooh, a bank text. I'll pull the shop and the amount out of it, don't worry.";
-  } else if (focused && price.ambiguous) {
-    line = `Two numbers in there. Is the price ${money(typedAmount)}? Tap the other one if not.`;
   } else if (focused && isSixSeven(typedAmount)) {
     line = "6… 7… 👀";
   } else if (focused && typedAmount >= 150) {
@@ -148,14 +151,12 @@ export function Counter({ callsign, arranging, onLogged }: { callsign: string; a
   async function send(raw: string) {
     const text = raw.trim();
     if (!text || busy) return;
-    const hint = pickAmount(text, chosen);
     setBusy(true);
     setReply(null);
     setPasted(false);
     try {
-      const headers: Record<string, string> = { [LOCAL_DATE_HEADER]: localISODate() };
-      // When there was a choice to make, tell the server which number is the price.
-      if (hint.ambiguous && hint.picked) headers["x-dime-amount"] = String(hint.picked.value);
+      // Your date and hour, so "yesterday" and "2am pizza" mean your time, not the server's.
+      const headers: Record<string, string> = { [LOCAL_DATE_HEADER]: localISODate(), "x-dime-hour": String(new Date().getHours()) };
       // One round trip: the server reads it and saves it in the same request.
       const parseRes = await fetch("/api/parse?save=1", { method: "POST", headers, body: text });
       if (!parseRes.ok) {
@@ -171,22 +172,21 @@ export function Counter({ callsign, arranging, onLogged }: { callsign: string; a
       const zh = parsed[0]?.comment_zh || undefined;
       setLang("orig");
       if (!valid.length) {
-        setReply({ you: text, items: [], text: comment || "I didn't catch a price in that. How much was it?", en: comment ? en : undefined, zh: comment ? zh : undefined });
+        setReply({ you: text, items: [], text: comment || "I didn't catch a price in that. How much was it?", en: comment ? en : undefined, zh: comment ? zh : undefined, fresh: true });
         return;
       }
       const saved = savedHere ?? (await saveSeparately(valid));
       addExpenses(saved);
       onLogged(saved.map((x) => x.id));
       setInput("");
-      setChosen(null);
       const egg = saved.some((x) => isSixSeven(x.amount));
       if (saved.some((x) => x.amount >= BIG_SPEND)) {
         setFlyAmount(saved.reduce((t, x) => t + x.amount, 0));
         setRain((n) => n + 1);
       }
-      setReply({ you: text, items: saved, text: egg ? "SIX SEVENNN 🤷 okay okay, logged." : comment || "Noted.", en: egg || !comment ? undefined : en, zh: egg || !comment ? undefined : zh, egg });
+      setReply({ you: text, items: saved, text: egg ? "SIX SEVENNN 🤷 okay okay, logged." : comment || "Noted.", en: egg || !comment ? undefined : en, zh: egg || !comment ? undefined : zh, egg, fresh: true });
     } catch (err) {
-      setReply({ you: text, items: [], text: err instanceof Error ? err.message : "Something broke on my side.", tone: "lego" });
+      setReply({ you: text, items: [], text: err instanceof Error ? err.message : "Something broke on my side.", tone: "lego", fresh: true });
       toast(err instanceof Error ? err.message : "Something broke", "error");
     } finally {
       setBusy(false);
@@ -209,9 +209,8 @@ export function Counter({ callsign, arranging, onLogged }: { callsign: string; a
     return () => window.removeEventListener("dime:log", onLog);
   }, []);
 
-  // The amount you typed, picked out so it can be highlighted.
+  // The amount you typed, picked out so it can be highlighted (only when it's clear).
   const amount = price.picked;
-  const other = price.ambiguous ? price.pool.filter((t) => t.value !== amount?.value).at(-1) : undefined;
   const syncMirror = () => {
     if (mirrorRef.current && inputRef.current) mirrorRef.current.scrollLeft = inputRef.current.scrollLeft;
   };
@@ -243,8 +242,15 @@ export function Counter({ callsign, arranging, onLogged }: { callsign: string; a
             <Speaker />
             <AnimatePresence initial={false} mode="popLayout">
               {reply && !input && !busy && (
-                <motion.div key={"you" + reply.you} layout exit={{ opacity: 0, y: -4, transition: LEAVE_QUICK }}>
-                  <Bubble from="you" text={reply.you} />
+                <motion.div
+                  key={"you" + reply.you}
+                  layout="position"
+                  initial={reply.fresh ? false : { opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0, y: -4, transition: LEAVE_QUICK }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <Bubble from="you" text={reply.you} still={!reply.fresh} />
                 </motion.div>
               )}
               {busy ? (
@@ -252,8 +258,15 @@ export function Counter({ callsign, arranging, onLogged }: { callsign: string; a
                   <TypingBubble className="bg-paper shadow-paper" />
                 </motion.div>
               ) : (
-              <motion.div key="dime" layout className={reply?.egg && !input ? "six-seven" : undefined}>
-                <Bubble text={line} tone={reply && !input && !busy ? reply.tone : undefined} scramble={!!(reply && !input && !busy && reply.en)}>
+              // Position only: the bubble resizes itself, and scaling the
+              // wrapper too would stretch the text for a frame.
+              <motion.div key="dime" layout="position">
+                <Bubble
+                  text={line}
+                  tone={reply && !input && !busy ? reply.tone : undefined}
+                  scramble={!!(reply && !input && !busy && reply.en)}
+                  instant={!!(reply && !input && !reply.fresh)}
+                >
                   {reply && !input && !busy && reply.items.length > 0 && (
                     <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-line pt-3">
                       {reply.items.map((x) => (
@@ -261,7 +274,7 @@ export function Counter({ callsign, arranging, onLogged }: { callsign: string; a
                           <TypeCoin type={x.type} onFlip={() => flip(x)} label className="pointer-coarse:-my-1.5 pointer-coarse:py-1.5" />
                           {x.amount >= BIG_SPEND && (
                             <span data-cash-chip className="inline-flex">
-                              <CashBill size={24} burst />
+                              <CashBill size={24} burst={reply.fresh} />
                             </span>
                           )}
                           <span className="min-w-0 truncate font-medium">{x.item_name}</span>
@@ -291,10 +304,9 @@ export function Counter({ callsign, arranging, onLogged }: { callsign: string; a
               value={input}
               onChange={(e) => {
                 setInput(e.target.value);
-                if (!e.target.value) {
-                  setPasted(false);
-                  setChosen(null);
-                }
+                if (!e.target.value) setPasted(false);
+                // Typing again means you've seen the reply: no encore when it comes back.
+                else if (reply?.fresh) setReply({ ...reply, fresh: false });
                 requestAnimationFrame(syncMirror);
               }}
               onPaste={(e) => {
@@ -309,7 +321,7 @@ export function Counter({ callsign, arranging, onLogged }: { callsign: string; a
               maxLength={2000}
               enterKeyHint="send"
               aria-label="What did you spend on?"
-              className={`relative h-14 w-full rounded-[10px] bg-paper pl-4 sm:h-16 sm:pl-6 ${other ? "pr-[178px] sm:pr-[230px]" : "pr-[118px] sm:pr-[170px]"} text-[17px] font-medium shadow-paper sm:text-[20px] caret-ink outline-none ring-2 ring-transparent transition-shadow focus:ring-ink ${
+              className={`relative h-14 w-full rounded-[10px] bg-paper pl-4 sm:h-16 sm:pl-6 pr-[118px] sm:pr-[170px] text-[17px] font-medium shadow-paper sm:text-[20px] caret-ink outline-none ring-2 ring-transparent transition-shadow focus:ring-ink ${
                 input ? "text-transparent" : "text-ink"
               }`}
             />
@@ -318,7 +330,7 @@ export function Counter({ callsign, arranging, onLogged }: { callsign: string; a
               <div
                 ref={mirrorRef}
                 aria-hidden
-                className={`pointer-events-none absolute inset-y-0 left-0 ${other ? "right-[178px] sm:right-[230px]" : "right-[118px] sm:right-[170px]"} flex items-center overflow-hidden whitespace-pre pl-4 text-[17px] font-medium text-ink sm:pl-6 sm:text-[20px]`}
+                className={`pointer-events-none absolute inset-y-0 left-0 right-[118px] sm:right-[170px] flex items-center overflow-hidden whitespace-pre pl-4 text-[17px] font-medium text-ink sm:pl-6 sm:text-[20px]`}
               >
                 {amount ? (
                   <>
@@ -343,18 +355,7 @@ export function Counter({ callsign, arranging, onLogged }: { callsign: string; a
                   transition={{ duration: 0.22, ease: EASE_OUT }}
                   className="absolute right-[58px] top-1/2 flex -translate-y-1/2 items-center gap-1 text-[14px] font-semibold sm:right-[64px] sm:gap-1.5"
                 >
-                  {other && (
-                    <button
-                      type="button"
-                      onMouseDown={(e) => e.preventDefault()}
-                      onClick={() => setChosen(other.value)}
-                      title="That one's the price"
-                      className="rounded-[8px] px-2 py-1 text-ink-3 line-through decoration-ink-3/50 transition-colors hover:bg-oat hover:text-ink hover:no-underline"
-                    >
-                      {money(other.value)}
-                    </button>
-                  )}
-                  <span className={`pointer-events-none ${other ? "rounded-[8px] bg-oat px-2 py-1 text-ink" : "text-ink-3"}`}>{money(amount.value)}</span>
+<span className="pointer-events-none text-ink-3">{money(amount.value)}</span>
                 </motion.span>
               )}
             </AnimatePresence>
@@ -402,7 +403,7 @@ export function Counter({ callsign, arranging, onLogged }: { callsign: string; a
       {/* The month so far */}
       <div className="col-span-12 lg:col-span-5 lg:pl-6">
         <p className="flex items-center gap-1 text-[15px] font-medium text-ink-2">
-          {format(new Date(), "MMMM")} so far
+          <span className="min-w-[4ch]">{month}</span> so far
           <InfoTip label="About this month's numbers">
             Everything you&apos;ve spent this month. The bar splits it into <b>Life</b> (needs) and <b>Lego</b> (wants).
             {budget ? (
@@ -431,7 +432,7 @@ export function Counter({ callsign, arranging, onLogged }: { callsign: string; a
           </motion.div>
           {/* Where you'd be today if you spread the budget evenly. Pointless (and
               easy to mistake for a glitch) in the last days of the month. */}
-          {budget && pace < 0.95 && (
+          {budget && month && pace < 0.95 && (
             <span
               className="absolute inset-y-[3px] w-[2px] rounded-full bg-ink/50 mix-blend-normal"
               style={{ left: `calc(${pace * 100}% - 1px)` }}
@@ -453,7 +454,9 @@ export function Counter({ callsign, arranging, onLogged }: { callsign: string; a
         </div>
 
         <p className="mt-4 max-w-[400px] text-[15px] leading-snug text-ink-2 sm:mt-5 sm:text-[16px]">
-          {budget && safe ? (
+          {state.isLoading ? (
+            <span aria-hidden>&nbsp;</span>
+          ) : budget && safe ? (
             safe.left >= 0 ? (
               <>
                 You can still spend <span className="font-semibold text-ink">{money(safe.left, 0)}</span> today and stay on track.{" "}

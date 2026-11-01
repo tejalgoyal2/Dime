@@ -4,8 +4,8 @@ How Dime actually works, for anyone poking around the code (including future me)
 
 ## What happens when you type "coffee & croissant 7.25"
 
-1. **The composer finds the price as you type** (`lib/amounts.ts`). Standalone numbers are price candidates. Numbers glued to letters ("2am", "pro3") aren't. A `$` wins. If there are two plain numbers, it asks you which one you meant and sends your pick along as a hint.
-2. **`/api/parse` asks Gemini** (`lib/gemini.ts`) to turn the text into JSON: item, amount, category, Life or Lego, an emoji and a one-line Hinglish comment. The message is treated as data, not instructions, and the result is validated with Zod before anything is saved.
+1. **The composer picks out the price as you type** (`lib/amounts.ts`), but only when it's clear. A `$` wins. Numbers that belong to the item ("2am", "pro3", "2%", "500 ml", "x2", "#4") are never prices. When it's still a toss-up ("6 milk 2"), nothing is highlighted and the AI decides from the meaning.
+2. **`/api/parse` asks the AI** (`lib/ai.ts`, prompt in `lib/parse-prompt.ts`) to turn the text into JSON: items with amount, category, Life or Lego and an emoji, plus Tom's one-liner in Hinglish, English and Chinese. It also gets a line about your week ("Bubble Tea x3", month so far against your budget) so the joke can be about you. The message is treated as data, and the answer has to match a JSON schema. The server then drops any amount you didn't actually type (models sometimes "know" a price).
 3. **Life vs Lego** follows the rules in `lib/life-lego.ts`. Then, if you've logged the same thing before, Dime reuses how you sorted it last time. Flip a coin once and it sticks.
 4. **`/api/expenses` saves it** with your session, so row-level security keeps it yours. The UI updates optimistically and rolls back if the save fails.
 
@@ -16,7 +16,7 @@ Same idea, minus the chat. The pipeline lives in `lib/ingest.ts`:
 1. Per-IP limit, checked before any other work.
 2. The token's SHA-256 hash is looked up with the service client, and every query after that is scoped to that user.
 3. Per-token limit, then de-duplication for forwarded alerts (a hash of user + text).
-4. Daily AI budget, Gemini, Life/Lego rules plus your history, Zod, insert.
+4. Daily AI budget, the AI (same schema-checked answers), Life/Lego rules plus your history, Zod, insert.
 5. An empty `204` with `X-Dime-Status` in the header.
 
 Setup guide for humans: [auto-log.md](auto-log.md).
@@ -50,4 +50,6 @@ There's no email and no phone. A name maps to a placeholder address for Supabase
 - **Deploys:** every push to `main` deploys to Cloudflare Workers (`.github/workflows/deploy.yml`).
 - **Keeping Supabase awake:** `.github/workflows/supabase-keepalive.yml` writes a row every three days so the free Supabase project never pauses, and re-enables itself so GitHub doesn't switch it off.
 - **Secrets** are Cloudflare Worker secrets. The two `NEXT_PUBLIC_` values are also GitHub secrets, because the build needs them. Supabase keys are the new kind: publishable (`sb_publishable_`) in the browser, secret (`sb_secret_`) on the server.
-- **Gemini model:** `gemini-3.5-flash-lite` by default. Set `GEMINI_MODEL` to override it. If the model is ever retired, `ask()` switches to `gemini-flash-lite-latest` by itself.
+- **AI providers** (`lib/ai.ts`): quick jobs (reading purchases, quips, roasts) go to Groq first (`openai/gpt-oss-120b`, strict JSON schema), with Gemini as backup. Serious ones (advice, "Read my month", subscriptions) go to Gemini first, with Groq as backup. Gemini is named by Google's `gemini-flash-latest` and `gemini-flash-lite-latest` aliases, which Google moves to each new release, so a newer free model needs no code change. `GEMINI_MODEL` and `GROQ_MODEL` override them.
+- **Security headers:** the Content Security Policy gets a fresh nonce per page request (`lib/csp.ts`, set in middleware), so only Dime's own scripts run. Plus HSTS, COOP/CORP same-origin, no framing, no sniffing. Writes check `Sec-Fetch-Site` and `Origin` against cross-site forgery.
+- **Dates** come from your browser, never the server (the server runs on UTC, which is already tomorrow on a Vancouver evening).

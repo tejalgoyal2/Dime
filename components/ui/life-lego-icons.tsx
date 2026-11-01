@@ -1,5 +1,5 @@
 // The two faces of the Life/Lego token: a coin for Life (you needed it), and
-// a 2x2 Lego brick seen from above for Lego (you wanted it). Tiny inline SVGs
+// a Lego brick for Lego (you wanted it). Tiny inline SVGs
 // in currentColor, so they follow the palette, with a little light and shade
 // so they read as objects, not dots.
 
@@ -14,45 +14,37 @@ export function LifeCoin({ size = 14, className = "" }: { size?: number; classNa
   );
 }
 
-// A 2x2 brick seen from the front and a little above (like the classic
-// storage brick): a front face, a darker side, a lighter top with four studs.
-// Coordinates follow a simple oblique projection: depth goes up and right.
-const DX = 5.6;
-const DY = -5.4;
-const top = (u: number, v: number) => [1.2 + u * 11.4 + v * DX, 9.6 + v * DY] as const;
-const STUDS = [
-  top(0.28, 0.7),
-  top(0.72, 0.7),
-  top(0.28, 0.27),
-  top(0.72, 0.27),
-];
+// A Lego brick from the front, the way everyone draws one: a body with a
+// sliver of its top showing and two round studs with lit tops. It reads at
+// 14px, where a full 3D brick turns to mush.
+const STUD_X = [6, 14];
 
 export function LegoBrick({ size = 14, className = "" }: { size?: number; className?: string }) {
-  const [x0, y0] = [1.2, 9.6];
-  const [x1, y1] = [12.6, 9.6];
-  const [bx, by] = [12.6, 18.8];
   return (
     <svg width={size} height={size} viewBox="0 0 20 20" aria-hidden className={className}>
-      {/* right side, darker */}
-      <path d={`M${x1} ${y1}L${x1 + DX} ${y1 + DY}L${bx + DX} ${by + DY}L${bx} ${by}Z`} fill="currentColor" />
-      <path d={`M${x1} ${y1}L${x1 + DX} ${y1 + DY}L${bx + DX} ${by + DY}L${bx} ${by}Z`} fill="#000" fillOpacity=".24" />
-      {/* front */}
-      <path d={`M${x0} ${y0}H${x1}V${by}H${x0}Z`} fill="currentColor" />
-      <path d={`M${x0} ${by - 1.2}H${x1}V${by}H${x0}Z`} fill="#000" fillOpacity=".08" />
-      {/* top, lighter */}
-      <path d={`M${x0} ${y0}L${x0 + DX} ${y0 + DY}L${x1 + DX} ${y1 + DY}L${x1} ${y1}Z`} fill="currentColor" />
-      <path d={`M${x0} ${y0}L${x0 + DX} ${y0 + DY}L${x1 + DX} ${y1 + DY}L${x1} ${y1}Z`} fill="#fff" fillOpacity=".28" />
-      {/* studs: a short cylinder each, back row first */}
-      {STUDS.map(([x, y]) => (
-        <g key={`${x}-${y}`}>
-          <path d={`M${x - 1.9} ${y - 1.6}v1.6a1.9 1.05 0 0 0 3.8 0V${y - 1.6}`} fill="currentColor" />
-          <path d={`M${x - 1.9} ${y - 1.6}v1.6a1.9 1.05 0 0 0 3.8 0V${y - 1.6}`} fill="#000" fillOpacity=".14" />
-          <ellipse cx={x} cy={y - 1.6} rx="1.9" ry="1.05" fill="currentColor" />
-          <ellipse cx={x} cy={y - 1.6} rx="1.9" ry="1.05" fill="#fff" fillOpacity=".45" />
+      {/* top face, lit */}
+      <path d="M1.6 8.4 3.4 6.6h13.2l1.8 1.8Z" fill="currentColor" />
+      <path d="M1.6 8.4 3.4 6.6h13.2l1.8 1.8Z" fill="#fff" fillOpacity=".35" />
+      {/* front, with a soft shadow along the bottom */}
+      <rect x="1.6" y="8.4" width="16.8" height="9.6" rx="1.1" fill="currentColor" />
+      <rect x="1.6" y="15.6" width="16.8" height="2.4" rx="1.1" fill="#000" fillOpacity=".16" />
+      {/* studs: short cylinders */}
+      {STUD_X.map((x) => (
+        <g key={x}>
+          <path d={`M${x - 2.4} 7.5V4.6h4.8v2.9a2.4.9 0 0 1-4.8 0Z`} fill="currentColor" />
+          <path d={`M${x - 2.4} 4.6v2.9a2.4.9 0 0 0 4.8 0V4.6`} fill="#000" fillOpacity=".12" />
+          <ellipse cx={x} cy="4.6" rx="2.4" ry=".9" fill="currentColor" />
+          <ellipse cx={x} cy="4.6" rx="2.4" ry=".9" fill="#fff" fillOpacity=".5" />
         </g>
       ))}
-      {/* a crisp edge so it reads at 14px */}
-      <path d={`M${x0} ${y0}L${x0 + DX} ${y0 + DY}L${x1 + DX} ${y1 + DY}L${bx + DX} ${by + DY}L${bx} ${by}H${x0}Z`} fill="none" stroke="#000" strokeOpacity=".22" strokeWidth=".6" strokeLinejoin="round" />
+      <path
+        d="M1.6 8.4 3.4 6.6h13.2l1.8 1.8V16.9a1.1 1.1 0 0 1-1.1 1.1H2.7a1.1 1.1 0 0 1-1.1-1.1Z"
+        fill="none"
+        stroke="#000"
+        strokeOpacity=".25"
+        strokeWidth=".6"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }

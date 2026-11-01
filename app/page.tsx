@@ -16,12 +16,15 @@ export default async function Home() {
     user.email?.split("@")[0] ??
     "anon";
 
-  const animal = typeof user.user_metadata?.animal === "string" ? user.user_metadata.animal : null;
+  const meta = user.user_metadata ?? {};
+  const animal = typeof meta.animal === "string" ? meta.animal : null;
+  const budget = typeof meta.budget === "number" && meta.budget > 0 ? meta.budget : null;
+  const punchGoal = typeof meta.punch_goal === "number" ? meta.punch_goal : null;
 
   // Toasts (and the motion config) live with the dashboard, so /login stays light.
   return (
     <ToastProvider>
-      <DashboardShell callsign={callsign} animal={animal} />
+      <DashboardShell callsign={callsign} animal={animal} budget={budget} punchGoal={punchGoal} />
     </ToastProvider>
   );
 }

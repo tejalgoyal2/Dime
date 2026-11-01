@@ -36,11 +36,8 @@ export function TakeCell() {
     }
     setBusy(kind);
     try {
-      const res = await fetch(kind === "read" ? "/api/insights" : "/api/roast", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ expenses: recent.map(({ item_name, amount, category, type, date }) => ({ item_name, amount, category, type, date })) }),
-      });
+      // The server reads your last 30 days itself.
+      const res = await fetch(kind === "read" ? "/api/insights" : "/api/roast", { method: "POST" });
       if (!res.ok) throw new Error();
       const data = (await res.json()) as { insight?: string; tip?: string | null; roast?: string; english?: string | null; chinese?: string | null };
       setLang("orig");

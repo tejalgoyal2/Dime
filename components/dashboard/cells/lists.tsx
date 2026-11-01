@@ -67,7 +67,7 @@ export function CategoriesCell() {
   );
 }
 
-type SubsAnswer = { subscriptions: { name: string; amount: number; frequency: string }[]; total_monthly_cost: number; advice: string };
+type SubsAnswer = { advice: string };
 
 /** Charges that repeat month to month, spotted from your history. */
 export function SubsCell() {
@@ -81,11 +81,8 @@ export function SubsCell() {
   async function lookHarder() {
     setBusy(true);
     try {
-      const res = await fetch("/api/analyze-subs", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ expenses: state.expenses.slice(0, 150).map(({ item_name, amount, date }) => ({ item_name, amount, date })) }),
-      });
+      // The server reads your history itself.
+      const res = await fetch("/api/analyze-subs", { method: "POST" });
       if (!res.ok) throw new Error();
       setAnswer((await res.json()) as SubsAnswer);
     } catch {

@@ -9,68 +9,124 @@ const pick = (pool: string) => pool[Math.floor(Math.random() * pool.length)];
 const isCJK = (s: string) => /[㐀-鿿]/.test(s);
 const EASE = "cubic-bezier(0.45, 0, 0.2, 1)";
 const reduced = () => typeof window !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches;
-const durationFor = (text: string) => Math.min(950, 460 + [...text].length * 5);
-
-type Morph = { from: string; to: string; dur: number };
+const ease = (p: number) => (p < 0.5 ? 2 * p * p : 1 - (-2 * p + 2) ** 2 / 2);
 
 /**
- * Text that morphs into new text, like a terminal resolving a message: the
- * old words fade out while the new ones decode in left to right (a band of
- * flickering glyphs leaves the real letters behind), and the box around it
- * (the nearest [data-flip], i.e. the bubble) resizes over the same time on
- * the same curve. It all starts on the same frame the text changes, so you
- * never see the new text first and the effect after.
+ * The ways one line can turn into another:
+ * - decode: a band of flickering glyphs sweeps through, leaving real letters behind
+ * - focus:  words come into focus one after another, like a lens pulling
+ * - rise:   words float up into place in a soft wave
+ * - type:   typed out behind a blinking caret
  */
-export function ScrambleText({ text, className = "" }: { text: string; className?: string }) {
+export type Effect = "decode" | "focus" | "rise" | "type";
+const EFFECTS: Effect[] = ["decode", "focus", "rise", "type"];
+let turn = 0; // each switch uses the next effect, so it never gets samey
+
+const durationFor = (text: string, effect: Effect) => {
+  const n = [...text].length;
+  return effect === "decode" || effect === "type" ? Math.min(950, 460 + n * 5) : Math.min(820, 420 + n * 3);
+};
+
+type Morph = { from: string; to: string; dur: number; effect: Effect };
+type Frame = { p: number; glyphs: string[] };
+
+/**
+ * Text that morphs into new text. Two rules keep it smooth:
+ *
+ * 1. Nothing ever reflows mid-morph. The new text is laid out in full from
+ *    the first frame (letters not there yet are just transparent), and the
+ *    content of the surrounding box is pinned at its final width, so no word
+ *    can hop between lines while the box resizes.
+ * 2. The box (the nearest [data-flip], i.e. the bubble) glides from the size
+ *    you were actually looking at to the new size, over the same time and
+ *    curve as the text. Interrupt it and the next glide starts from wherever
+ *    it was, not from a stale size.
+ *
+ * It all starts on the same frame the text changes.
+ */
+export function ScrambleText({ text, className = "", effect }: { text: string; className?: string; effect?: Effect }) {
   const [current, setCurrent] = useState(text);
   const [morph, setMorph] = useState<Morph | null>(null);
-  const [frame, setFrame] = useState<{ done: string; band: string; p: number }>({ done: "", band: "", p: 0 });
+  const [frame, setFrame] = useState<Frame>({ p: 0, glyphs: [] });
   const root = useRef<HTMLSpanElement>(null);
   const oldLayer = useRef<HTMLSpanElement>(null);
-  const lastText = useRef<{ w: number } | null>(null);
-  const lastBox = useRef<{ w: number; h: number } | null>(null);
+  // Width of the text you're looking at (or heading to), and the box's settled size.
+  const shownWidth = useRef(0);
+  const settledBox = useRef<{ w: number; h: number } | null>(null);
+  const flight = useRef<{ anim: Animation; pinned: HTMLElement[]; overflow: string } | null>(null);
 
   // The moment the text changes, start the morph in this very render.
   if (text !== current) {
     setCurrent(text);
-    setMorph(reduced() ? null : { from: current, to: text, dur: durationFor(text) });
-    setFrame({ done: "", band: "", p: 0 });
+    const fx = effect ?? EFFECTS[turn++ % EFFECTS.length];
+    setMorph(reduced() ? null : { from: morph ? morph.to : current, to: text, dur: durationFor(text, fx), effect: fx });
+    setFrame({ p: 0, glyphs: [] });
   }
 
-  // Before paint: pin the old words to their old width (so they don't
-  // re-wrap), and glide the bubble from its old size to the new one.
+  // Keep the settled box size current (resizes, chips changing, the window),
+  // so a morph always starts from the size on screen.
+  useLayoutEffect(() => {
+    const box = root.current?.closest<HTMLElement>("[data-flip]");
+    const el = root.current;
+    if (!box || !el) return;
+    const read = () => {
+      if (flight.current) return;
+      settledBox.current = { w: box.offsetWidth, h: box.offsetHeight };
+      shownWidth.current = el.offsetWidth + 1;
+    };
+    read();
+    const ro = new ResizeObserver(read);
+    ro.observe(box);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  // Before paint: pin everything at its final layout and glide the box.
   useLayoutEffect(() => {
     const el = root.current;
     const box = el?.closest<HTMLElement>("[data-flip]");
-    if (morph && oldLayer.current && lastText.current) oldLayer.current.style.width = `${lastText.current.w}px`;
-    if (box && morph && lastBox.current) {
-      const was = lastBox.current;
-      const now = { w: box.offsetWidth, h: box.offsetHeight };
-      if (was.w !== now.w || was.h !== now.h) {
-        const overflow = box.style.overflow;
-        box.style.overflow = "hidden";
-        box
-          .animate([{ width: `${was.w}px`, height: `${was.h}px` }, { width: `${now.w}px`, height: `${now.h}px` }], { duration: morph.dur, easing: EASE })
-          .finished.catch(() => {})
-          .finally(() => {
-            box.style.overflow = overflow;
-          });
-      }
+    if (!morph || !el) return;
+
+    // Where the box is right now: mid-glide if we interrupted one.
+    let from = settledBox.current;
+    if (flight.current && box) {
+      from = { w: box.offsetWidth, h: box.offsetHeight };
+      flight.current.anim.cancel();
+      flight.current.pinned.forEach((c) => (c.style.width = ""));
+      box.style.overflow = flight.current.overflow;
+      flight.current = null;
     }
-    // Remember sizes for next time (only when settled, so we keep true sizes).
-    if (!morph && el) {
-      lastText.current = { w: el.offsetWidth };
-      if (box) lastBox.current = { w: box.offsetWidth, h: box.offsetHeight };
+    el.style.width = "";
+    el.style.maxWidth = "";
+
+    // The old words stay at the width they had, fading out where they were.
+    if (oldLayer.current) oldLayer.current.style.width = `${shownWidth.current}px`;
+    // offsetWidth ignores transforms (a bubble still scaling in); +1 covers
+    // its rounding and any hair of difference the per-letter spans make.
+    const finalWidth = el.offsetWidth + 1;
+    shownWidth.current = finalWidth;
+    // Pin the new text and the box's contents at their final widths.
+    el.style.width = `${finalWidth}px`;
+    el.style.maxWidth = "none";
+
+    if (!box || !from) return;
+    const to = { w: box.offsetWidth, h: box.offsetHeight };
+    if (from.w === to.w && from.h === to.h) {
+      flight.current = { anim: new Animation(), pinned: [], overflow: box.style.overflow };
+      return;
     }
+    const pinned = [...box.children].filter((c): c is HTMLElement => c instanceof HTMLElement);
+    pinned.forEach((c) => (c.style.width = `${c.offsetWidth + 1}px`));
+    const overflow = box.style.overflow;
+    box.style.overflow = "hidden";
+    const anim = box.animate([{ width: `${from.w}px`, height: `${from.h}px` }, { width: `${to.w}px`, height: `${to.h}px` }], { duration: morph.dur, easing: EASE });
+    flight.current = { anim, pinned, overflow };
   }, [morph]);
 
-  // Drive the decode: ~30 updates a second, so it reads as a flicker.
+  // Drive the effect (~30 updates a second); unpin everything when it lands.
   useEffect(() => {
     if (!morph) return;
     const pool = isCJK(morph.to) ? CJK + LATIN.slice(0, 10) : LATIN;
-    const chars = [...morph.to];
-    const len = Math.max(chars.length, 1);
-    const BAND = Math.min(8, Math.max(3, Math.round(len / 8)));
     const start = performance.now();
     let raf = 0;
     let last = 0;
@@ -78,16 +134,21 @@ export function ScrambleText({ text, className = "" }: { text: string; className
       const p = Math.min(1, (t - start) / morph.dur);
       if (t - last > 33 || p === 1) {
         last = t;
-        // Ease the sweep so it starts gently and settles, like the box does.
-        const e = p < 0.5 ? 2 * p * p : 1 - (-2 * p + 2) ** 2 / 2;
-        const head = Math.round(e * (len + BAND));
-        const settled = Math.max(0, head - BAND);
-        const band = chars
-          .slice(settled, Math.min(head, len))
-          .map((c) => (c === " " ? " " : pick(pool)))
-          .join("");
-        if (p === 1) setMorph(null);
-        else setFrame({ done: chars.slice(0, settled).join(""), band, p });
+        if (p === 1) {
+          const f = flight.current;
+          const box = root.current?.closest<HTMLElement>("[data-flip]");
+          if (f) {
+            f.anim.cancel();
+            f.pinned.forEach((c) => (c.style.width = ""));
+            if (box) box.style.overflow = f.overflow;
+            flight.current = null;
+          }
+          if (root.current) {
+            root.current.style.width = "";
+            root.current.style.maxWidth = "";
+          }
+          setMorph(null);
+        } else setFrame({ p, glyphs: Array.from({ length: 10 }, () => pick(pool)) });
       }
       if (p < 1) raf = requestAnimationFrame(tick);
     };
@@ -97,21 +158,91 @@ export function ScrambleText({ text, className = "" }: { text: string; className
 
   return (
     <span ref={root} className={`relative inline-block max-w-full align-top ${className}`}>
-      {/* The new text, laid out from the first frame (invisible while morphing). */}
-      <span className={morph ? "invisible" : undefined}>{text}</span>
+      {morph ? <Morphing to={morph.to} effect={morph.effect} frame={frame} /> : text}
       {morph && (
-        <>
-          {/* The old words, fading out where they were. */}
-          <span ref={oldLayer} aria-hidden className="absolute left-0 top-0" style={{ opacity: Math.max(0, 1 - frame.p / 0.45), filter: `blur(${Math.min(2, frame.p * 5)}px)` }}>
-            {morph.from}
-          </span>
-          {/* The new words, decoding in. */}
-          <span aria-hidden className="absolute inset-0">
-            {frame.done}
-            <span className="decode-band">{frame.band}</span>
-          </span>
-        </>
+        <span
+          ref={oldLayer}
+          aria-hidden
+          className="pointer-events-none absolute left-0 top-0"
+          style={oldStyle(morph.effect, frame.p)}
+        >
+          {morph.from}
+        </span>
       )}
     </span>
+  );
+}
+
+function oldStyle(effect: Effect, p: number): React.CSSProperties {
+  const k = Math.min(1, p / (effect === "type" || effect === "rise" ? 0.28 : 0.45));
+  if (effect === "rise") return { opacity: 1 - k, transform: `translateY(${-8 * ease(k)}px)`, filter: `blur(${k}px)` };
+  return { opacity: 1 - k, filter: `blur(${(effect === "focus" ? 4 : 2) * k}px)` };
+}
+
+/**
+ * The new text, always laid out in full. Letters (or words) that haven't
+ * arrived are transparent, ones arriving get the effect, the rest are plain.
+ */
+function Morphing({ to, effect, frame }: { to: string; effect: Effect; frame: Frame }) {
+  // Rising words wait a beat for the old line to clear, so the two don't tangle.
+  const e = effect === "rise" ? ease(Math.max(0, (frame.p - 0.14) / 0.86)) : ease(frame.p);
+  if (effect === "focus" || effect === "rise") {
+    const parts = to.split(/(\s+)/); // words, with the spaces kept as their own parts
+    const words = parts.filter((w) => w && !/^\s+$/.test(w)).length || 1;
+    const W = Math.max(2, Math.round(words / 3));
+    let i = -1;
+    return (
+      <>
+        {parts.map((w, k) => {
+          if (!w || /^\s+$/.test(w)) return w;
+          i++;
+          const t = Math.min(1, Math.max(0, (e * (words + W) - i) / W));
+          if (t >= 1) return w;
+          const style: React.CSSProperties =
+            effect === "focus"
+              ? { opacity: t, filter: `blur(${(1 - t) * 5}px)` }
+              : { opacity: t, position: "relative", top: `${(1 - ease(t)) * 0.55}em` };
+          return (
+            <span key={k} style={style}>
+              {w}
+            </span>
+          );
+        })}
+      </>
+    );
+  }
+
+  const chars = [...to];
+  const n = Math.max(chars.length, 1);
+  if (effect === "type") {
+    const head = Math.round(e * n);
+    return (
+      <>
+        {chars.slice(0, head).join("")}
+        <span className="type-caret" />
+        <span className="text-transparent">{chars.slice(head).join("")}</span>
+      </>
+    );
+  }
+
+  // decode
+  const W = Math.min(8, Math.max(3, Math.round(n / 8)));
+  const head = Math.round(e * (n + W));
+  const settled = Math.max(0, head - W);
+  const band = chars.slice(settled, Math.min(head, n));
+  return (
+    <>
+      {chars.slice(0, settled).join("")}
+      {band.map((c, k) =>
+        /\s/.test(c) ? (
+          c
+        ) : (
+          <span key={k} className="decode-glyph" data-g={frame.glyphs[k % frame.glyphs.length] ?? c}>
+            {c}
+          </span>
+        )
+      )}
+      <span className="text-transparent">{chars.slice(Math.min(head, n)).join("")}</span>
+    </>
   );
 }

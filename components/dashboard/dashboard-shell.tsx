@@ -7,6 +7,7 @@ import { Wordmark } from "@/components/ui/wordmark";
 import { AnimalAvatar, animalFor, type Animal } from "@/components/ui/animal";
 import { CoinToggle } from "@/components/ui/coin-toggle";
 import { useLayout } from "@/lib/dashboard/use-layout";
+import { SettingsProvider } from "@/lib/use-budget";
 import type { ExpenseRow } from "@/lib/supabase/types";
 import { DashboardContext } from "./context";
 import { Counter } from "./counter";
@@ -23,12 +24,16 @@ const noop = () => () => {};
 interface DashboardShellProps {
   callsign: string;
   animal: string | null;
+  budget: number | null;
+  punchGoal: number | null;
 }
 
-export function DashboardShell({ callsign, animal }: DashboardShellProps) {
+export function DashboardShell({ callsign, animal, budget, punchGoal }: DashboardShellProps) {
   return (
     <ExpensesProvider>
-      <Shell callsign={callsign} savedAnimal={animal} />
+      <SettingsProvider initial={{ budget, punchGoal }}>
+        <Shell callsign={callsign} savedAnimal={animal} />
+      </SettingsProvider>
     </ExpensesProvider>
   );
 }

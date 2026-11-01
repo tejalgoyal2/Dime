@@ -5,7 +5,17 @@ import { isValidOrigin } from "@/lib/origin-check";
 import { apiError } from "@/lib/api-error";
 import { ANIMALS } from "@/components/ui/animal";
 
-// Small profile bits that live on the account, like which animal you are.
+// Small profile bits that live on the account (so every device agrees):
+// which animal you are, your monthly budget, your club-card goal.
+const profileSchema = z
+  .object({
+    animal: z.enum(ANIMALS).optional(),
+    budget: z.number().positive().max(10_000_000).nullable().optional(),
+    punch_goal: z.number().int().min(1).max(7).nullable().optional(),
+  })
+  .strict()
+  .refine((p) => Object.keys(p).length > 0);
+
 export async function PUT(request: NextRequest) {
   if (!isValidOrigin(request.headers)) return apiError("Invalid origin", "INVALID_ORIGIN", 403);
   const supabase = await createClient();
@@ -14,10 +24,10 @@ export async function PUT(request: NextRequest) {
   } = await supabase.auth.getUser();
   if (!user) return apiError("Unauthorized", "UNAUTHORIZED", 401);
 
-  const body = z.object({ animal: z.enum(ANIMALS) }).safeParse(await request.json().catch(() => null));
-  if (!body.success) return apiError("Unknown animal", "VALIDATION_FAILED", 400);
+  const body = profileSchema.safeParse(await request.json().catch(() => null));
+  if (!body.success) return apiError("That doesn't look right", "VALIDATION_FAILED", 400);
 
-  const { error } = await supabase.auth.updateUser({ data: { animal: body.data.animal } });
+  const { error } = await supabase.auth.updateUser({ data: body.data });
   if (error) return apiError("Couldn't save that", "INTERNAL_ERROR", 500);
   return NextResponse.json({ ok: true });
 }

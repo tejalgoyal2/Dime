@@ -3,11 +3,9 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 // How Dime decides Life (need) vs Lego (want), shared by every prompt that
 // sorts purchases, plus the bit that learns from your own corrections.
 
-export const LIFE_LEGO_RULES = `
-LIFE vs LEGO. "type" is "Need" (Life) or "Want" (Lego). Ask: would their life actually break without it this month?
-Need (Life): rent or mortgage, utilities, phone and internet bills, groceries for meals at home, transit pass or commute fuel, insurance, medicine, pharmacy, doctor or dentist, basic toiletries, childcare, tuition and textbooks, loan or credit card payments, repairs to things they rely on, work tools they need.
-Want (Lego): eating out, coffee shops, takeout and delivery, snacks, alcohol, bubble tea, rideshares when transit would do, entertainment, streaming and subscriptions, games, hobbies, gadgets, clothes beyond basics, beauty, travel, gifts, anything impulsive.
-Judgment calls: a grocery run that's mostly snacks, candy or alcohol is Want; a cab to a hospital or late-night safety ride is Need, an Uber home from a bar is Want; a basic gym membership is Need, boutique classes are Want; replacing a broken phone is Need, upgrading a working one is Want; a mixed purchase follows its biggest part.`;
+export const LIFE_LEGO_RULES = `Need (Life) = their life would actually break without it this month: rent, bills, phone/internet, groceries for home meals, commute, insurance, medicine, doctor, basic toiletries, childcare, tuition, debt payments, repairs, work tools.
+Want (Lego) = nice to have: eating out, coffee shops, takeout, snacks, alcohol, bubble tea, rideshares when transit would do, entertainment, streaming, games, hobbies, gadgets, non-basic clothes, beauty, travel, gifts, impulse buys.
+Edge cases: a grocery run of mostly snacks or alcohol is Want; a cab to hospital or a late-night safety ride is Need, Uber home from a bar is Want; basic gym is Need, boutique classes Want; replacing a broken phone is Need, upgrading a working one Want. A mixed purchase follows its biggest part.`;
 
 const escapeLike = (s: string) => s.replace(/[\\%_]/g, (c) => `\\${c}`);
 
@@ -34,4 +32,24 @@ export async function learnFromHistory<T extends Sorted>(db: SupabaseClient, use
       return data ? { ...item, type: data.type, category: data.category } : item;
     })
   );
+}
+
+/** The categories every prompt picks from, so charts don't split "Food" and "Dining". */
+export const CATEGORIES = ["Food", "Groceries", "Transport", "Shopping", "Subscriptions", "Bills", "Housing", "Health", "Personal Care", "Entertainment", "Travel", "Education", "Gifts", "Other"] as const;
+
+export const CURRENCY_RULE = `Amounts are Canadian dollars. If they name another currency, convert (1 USD = 1.4, 1 EUR = 1.5, 1 GBP = 1.75, 1 INR = 0.016 CAD) and keep the original in the name, like "Netflix (15.49 USD)".`;
+
+/**
+ * Did the amount come from what they typed? Models sometimes "know" a price.
+ * Accepts a typed number, a count times a price ("2 coffees at 4"), or "2k".
+ * Skipped when there are no digits (they wrote "five bucks") or the name
+ * says a currency was converted.
+ */
+export function amountWasTyped(text: string, amount: number, name: string) {
+  if (/\((?:[\d.,]+\s*)?[A-Z]{3}\)/.test(name)) return true;
+  const nums = [...text.matchAll(/\d+(?:[.,]\d+)?/g)].map((m) => Number(m[0].replace(",", ".")));
+  if (!nums.length) return true;
+  const near = (a: number, b: number) => Math.abs(a - b) < 0.011;
+  if (nums.some((n) => near(n, amount) || near(n * 1000, amount))) return true;
+  return nums.some((a, i) => nums.some((b, j) => i !== j && near(a * b, amount)));
 }

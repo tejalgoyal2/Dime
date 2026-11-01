@@ -81,7 +81,7 @@ That's the whole API. Plain text or `{"text": "..."}` both work. Bank alerts wor
 | **App** | Next.js 16 (App Router), React 19, TypeScript strict |
 | **Hosting** | Cloudflare Workers via [OpenNext](https://opennext.js.org/cloudflare) |
 | **Database + auth** | Supabase (Postgres with row-level security) |
-| **AI** | Google Gemini 3.5 Flash-Lite through the Gen AI SDK, with a fallback model |
+| **AI** | Groq (gpt-oss-120b) for quick reads and jokes, Google Gemini (always the latest Flash) for advice; each backs the other up |
 | **Rate limiting** | Upstash Redis |
 | **Validation** | Zod v4, same schemas on client and server |
 | **Look and feel** | Tailwind v4, Framer Motion, dnd-kit, NumberFlow, cmdk, Sonner |

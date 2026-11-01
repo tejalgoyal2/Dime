@@ -22,7 +22,7 @@ export function Bubble({
   text: string;
   from?: "dime" | "you";
   tone?: "plain" | "lego";
-  /** Skip the typing beat (when the parent shows its own). */
+  /** Show the text with a soft fade instead of word by word (a line you've already seen). */
   instant?: boolean;
   /** No entrance or size animation (the parent moves the whole thread). */
   still?: boolean;
@@ -46,11 +46,15 @@ export function Bubble({
     >
       <motion.div layout={still || scramble ? false : "position"}>
         {scramble ? (
-          <p className="text-[16px] font-medium leading-snug">
+          <p key="scramble" className={`text-[16px] font-medium leading-snug ${instant ? "text-swap" : ""}`}>
             <ScrambleText text={text} />
           </p>
-        ) : you || instant ? (
+        ) : you ? (
           <p className="text-[16px] font-medium leading-snug">{text}</p>
+        ) : instant ? (
+          <p key={text} className="text-swap text-[16px] font-medium leading-snug">
+            {text}
+          </p>
         ) : (
           <Typed text={text} />
         )}

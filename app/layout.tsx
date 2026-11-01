@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
+import { headers } from "next/headers";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import "./globals.css";
 
@@ -57,16 +58,20 @@ export const viewport: Viewport = {
   ],
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // The CSP nonce from middleware, so this inline theme script may run.
+  // Reading it renders every page per request, which a nonce needs anyway.
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
   return (
     <html lang="en" className={chillax.variable} suppressHydrationWarning>
       <head>
         {/* Apply the saved theme before first paint to avoid a theme flash. */}
         <script
+          nonce={nonce}
           dangerouslySetInnerHTML={{
             __html: `try{var s=localStorage.getItem("dime-theme");var t=(s==="light"||s==="dark")?s:(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.setAttribute("data-theme",t);var p=localStorage.getItem("dime-palette");if(p&&p!=="graphite")document.documentElement.setAttribute("data-palette",p)}catch(e){}`,
           }}

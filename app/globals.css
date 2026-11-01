@@ -403,13 +403,6 @@ input[type="number"] {
 
 
 /* 6-7: the bubble does the hands. */
-.six-seven { animation: six-seven 0.9s ease-in-out 2; transform-origin: 30% 100%; }
-@keyframes six-seven {
-  0%, 100% { rotate: 0deg; }
-  25% { rotate: -3deg; translate: 0 -2px; }
-  75% { rotate: 3deg; translate: 0 2px; }
-}
-@media (prefers-reduced-motion: reduce) { .six-seven { animation: none; } }
 
 /*
  * Login motion, in CSS so /login ships no animation library. The springs are
@@ -482,8 +475,13 @@ input[type="number"] {
 .text-swap { animation: text-swap 0.3s cubic-bezier(0.22, 1, 0.36, 1) both; }
 @keyframes text-swap { from { opacity: 0; translate: 0 3px; filter: blur(2px); } }
 @media (prefers-reduced-motion: reduce) { .word-roll, .text-swap { animation: none; } }
-/* The decoding band in translated text: dimmer and in the Lego colour. */
-.decode-band { color: var(--lego); opacity: 0.75; }
+/* Text morphs (components/ui/scramble.tsx). A decoding letter keeps its
+   real width (transparent) with a flickering glyph drawn over it, so the
+   line never reflows; the typing caret is a zero-width mark. */
+.decode-glyph { position: relative; color: transparent; }
+.decode-glyph::after { content: attr(data-g); position: absolute; left: 0; top: 0; color: var(--lego); opacity: 0.75; }
+.type-caret { position: relative; }
+.type-caret::after { content: ""; position: absolute; left: 0; top: 0.12em; height: 1.05em; width: 2px; border-radius: 1px; background: currentColor; opacity: 0.7; }
 
 /* Login reply box: only the contents fade when it changes. */
 .fade-swap { animation: fade-swap 0.24s ease-out both; }

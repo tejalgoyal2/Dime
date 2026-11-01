@@ -90,7 +90,22 @@ export function checkup(expenses: ExpenseRow[], now = new Date()) {
     },
   ];
 
-  // A compact, numbers-only summary for the advice prompt (no item names).
+  // The wants that keep coming back, so advice can name a real habit.
+  const habits = new Map<string, { count: number; total: number }>();
+  for (const e of window) {
+    if (e.type !== "Want") continue;
+    const k = e.item_name.trim().toLowerCase().slice(0, 40);
+    const h = habits.get(k) ?? { count: 0, total: 0 };
+    habits.set(k, { count: h.count + 1, total: h.total + e.amount });
+  }
+  const frequentWants = [...habits]
+    .filter(([, h]) => h.count >= 3)
+    .sort((a, b) => b[1].total - a[1].total)
+    .slice(0, 5)
+    .map(([item, h]) => ({ item, times: h.count, total: Math.round(h.total) }));
+
+  // A compact summary for the advice prompt: numbers, categories and the
+  // names of repeat treats, nothing else.
   const topCats = [...cats.entries()]
     .map(([name, c]) => ({ name, monthly: (c.before / Math.max(pastTotals.length, 1) + c.now * pace) / 2 }))
     .sort((a, b) => b.monthly - a.monthly)
@@ -104,6 +119,7 @@ export function checkup(expenses: ExpenseRow[], now = new Date()) {
     late_night_lego_pct: Math.round(lateShare * 100),
     creeping_up: risers.slice(0, 2).map((r) => ({ category: r.name, pace: Math.round(r.pace), usual: Math.round(r.usual) })),
     top_categories_monthly: topCats.map((c) => ({ category: c.name, amount: Math.round(c.monthly) })),
+    frequent_wants_last_3_months: frequentWants,
     months_of_data: pastTotals.length + (thisMonth.length ? 1 : 0),
   };
 
