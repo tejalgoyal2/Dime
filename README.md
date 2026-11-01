@@ -110,7 +110,7 @@ lib/
   amounts.ts      finding the price in what you typed
   rate-limit.ts   all the limits in one place
 supabase/         SQL to run once (expenses table, keep-alive table, dashboard + auto-log tables)
-docs/             setup, internals, and the two long reads below
+docs/             setup and internals
 .github/          the deploy workflow and the Supabase keep-alive
 ```
 
@@ -162,8 +162,6 @@ Pushing to `main` deploys to Cloudflare through GitHub Actions. A second workflo
 
 - **[docs/auto-log.md](docs/auto-log.md)**: set up phone auto-logging (iPhone, Android, anything with a webhook).
 - **[docs/under-the-hood.md](docs/under-the-hood.md)**: the short tour of how it works.
-- **[docs/DIME.md](docs/DIME.md)**: the full reference. Every route, table, prompt, secret name (never the values) and how to deploy.
-- **[docs/DIME-subjective.md](docs/DIME-subjective.md)**: the other half. How it got made, what was rejected, and why it looks the way it does.
 
 Releases are tagged on the [releases page](https://github.com/tejalgoyal2/Dime/releases), each one a checkpoint you can come back to.
 
