@@ -1,16 +1,19 @@
 import { GoogleGenAI, HarmBlockThreshold, HarmCategory, ThinkingLevel, type SafetySetting } from "@google/genai";
 
-// Every AI call in Dime goes through `ask`. Two kinds of question:
+// Every AI call in Dime goes through `ask`. Gemini answers first; Groq is
+// the backup if Gemini errors, is rate limited or returns nothing usable.
+// (Tested side by side on real messages: Gemini's jokes land, Groq's free
+// models were blander and hit their per-minute token limit quickly.)
 //
-//   "fast"    – reading "coffee 5", quips, roasts. Groq answers first (open
-//               models on its own chips, a few hundred ms), Gemini backs it up.
-//   "serious" – money advice and reads of your month. Gemini answers first
-//               (better reasoning, a little thinking allowed), Groq backs it up.
+//   "fast"    – reading "coffee 5", quips, roasts: the latest Flash-Lite,
+//               no thinking (about a second).
+//   "serious" – money advice and reads of your month: the latest Flash,
+//               with a little thinking.
 //
 // Models are named by Google's "-latest" aliases, which Google moves to each
 // new release, so a better free model shows up here without a code change.
-// Answers are constrained to a JSON schema where the provider supports it,
-// so a reply is either well-formed or it falls through to the other provider.
+// Answers are constrained to a JSON schema, so a reply is either well-formed
+// or it falls through to the other provider.
 
 export type Schema = Record<string, unknown>;
 
@@ -46,10 +49,9 @@ const LENIENT: SafetySetting[] = [
 const statusOf = (e: unknown) => (e as { status?: number; code?: number })?.status ?? (e as { code?: number })?.code;
 
 export async function ask<T = unknown>(opts: AskOptions): Promise<T> {
-  const kind = opts.kind ?? "fast";
   const groq = process.env.GROQ_API_KEY ? () => askGroq(opts) : null;
   const gemini = process.env.GEMINI_API_KEY ? () => askGemini(opts) : null;
-  const order = (kind === "fast" ? [["groq", groq], ["gemini", gemini]] : [["gemini", gemini], ["groq", groq]]) as [
+  const order = [["gemini", gemini], ["groq", groq]] as [
     "groq" | "gemini",
     (() => Promise<string>) | null,
   ][];
@@ -118,6 +120,8 @@ async function askGemini({ system, prompt, schema, temperature = 0.8, kind = "fa
           ...(useSchema ? { responseJsonSchema: schema } : {}),
           ...(thinking ? { thinkingConfig: { thinkingLevel: thinking } } : {}),
           ...(lenient ? { safetySettings: LENIENT } : {}),
+          // A stuck call falls through to Groq instead of hanging the request.
+          abortSignal: AbortSignal.timeout(kind === "fast" ? 8000 : 25000),
         },
       });
       const text = (res.text ?? "").trim();
@@ -137,7 +141,8 @@ async function askGemini({ system, prompt, schema, temperature = 0.8, kind = "fa
         attempt--;
         continue;
       }
-      if ((status === 429 || status === 503) && attempt < RETRY_DELAYS.length) {
+      // Busy? With Groq as backup, hand over now rather than wait and retry.
+      if ((status === 429 || status === 503) && attempt < RETRY_DELAYS.length && !process.env.GROQ_API_KEY) {
         await new Promise((r) => setTimeout(r, RETRY_DELAYS[attempt]));
         continue;
       }
