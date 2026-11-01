@@ -37,7 +37,7 @@ It's the rewrite of [WalletRIP](https://github.com/tejalgoyal2/WalletRIP), my fi
 **A dashboard you can rearrange.** Drag cards around, resize them, hide the ones you don't care about. Your layout follows you between devices.
 
 - *How it's going*: bars, Life vs Lego lines, or a running total racing last month (and your budget, if you set one)
-- *The receipt*: today's damage, printed
+- *The receipt*: this month's damage, printed
 - *The seesaw*: Life and Lego, literally weighed against each other
 - *Dime club*: a punch card for logging a few times a week (you pick how many, it's not a daily guilt trip)
 - *The year*: a GitHub-style heatmap of your spending

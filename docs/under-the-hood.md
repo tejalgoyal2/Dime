@@ -8,7 +8,7 @@ How Dime actually works, for anyone poking around the code (including future me)
 1. **The composer picks out the price as you type** (`lib/amounts.ts`), but only when it's clear. A `$` wins. Numbers that belong to the item ("2am", "pro3", "2%", "500 ml", "x2", "#4") are never prices. When it's still a toss-up ("6 milk 2"), nothing is highlighted and the AI decides from the meaning.
 2. **`/api/parse` asks the AI** (`lib/ai.ts`, prompt in `lib/parse-prompt.ts`) to turn the text into JSON: items with amount, category, Life or Lego and an emoji, plus Tom's one-liner in Hinglish, English and Chinese. It also gets a line about your week ("Bubble Tea x3", month so far against your budget) so the joke can be about you. The message is treated as data, and the answer has to match a JSON schema. The server then drops any amount you didn't actually type (models sometimes "know" a price).
 3. **Life vs Lego** follows the rules in `lib/life-lego.ts`. Then, if you've logged the same thing before, Dime reuses how you sorted it last time. Flip a coin once and it sticks.
-4. **`/api/expenses` saves it** with your session, so row-level security keeps it yours. The UI updates optimistically and rolls back if the save fails.
+4. **The same request saves it** (`/api/parse?save=1`) with your session, so row-level security keeps it yours, and the reply shows what was logged: tap the coin to flip Life/Lego, tap the price to fix it, or Undo.
 
 ## Auto-log (`/api/ingest`)
 

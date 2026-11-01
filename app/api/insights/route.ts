@@ -7,7 +7,7 @@ import { ask, plain, S } from "@/lib/ai";
 import { lastDays, monthDigest } from "@/lib/digest";
 
 // "Read my month": an honest, plain-English read of your last 30 days and one
-// thing to try. A serious question, so Gemini answers first.
+// thing to try. A serious question: the latest Gemini Flash, thinking a little.
 
 const SYSTEM = `You're a friendly, clear-eyed money coach. You get a digest of someone's last 30 days of spending in Canadian dollars. Assume they know nothing about finance.
 
