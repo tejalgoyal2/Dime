@@ -36,7 +36,6 @@ type AskOptions = {
 };
 
 const GEMINI = { fast: ["gemini-flash-lite-latest", "gemini-flash-latest"], serious: ["gemini-flash-latest", "gemini-flash-lite-latest"] };
-
 const GROQ_MODEL = "openai/gpt-oss-120b";
 const RETRY_DELAYS = [1200, 3000];
 

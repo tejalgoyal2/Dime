@@ -11,7 +11,7 @@ const PUBLIC_PATHS = [
 ];
 
 // Token-authenticated endpoints skip the session lookup entirely.
-const TOKEN_PATHS = ["/api/ingest", "/api/quick-add", "/api/debug/eval"];
+const TOKEN_PATHS = ["/api/ingest", "/api/quick-add"];
 
 export async function updateSession(request: NextRequest) {
   const path = request.nextUrl.pathname;

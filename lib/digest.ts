@@ -42,7 +42,7 @@ export function monthDigest(rows: Row[]) {
   const biggest = [...rows].sort((a, b) => b.amount - a.amount).slice(0, 4);
 
   return [
-    `Last 30 days: ${$(total)} over ${rows.length} purchases. Life (needs) ${$(total - wants)}, Lego (wants) ${$(wants)}.`,
+    `Last 30 days: ${$(total)} over ${rows.length} purchases. Needs ${$(total - wants)}, wants ${$(wants)}.`,
     `By category: ${topCats.map(([c, t]) => `${clean(c)} ${$(t)}`).join(", ")}.`,
     repeats.length ? `Repeats: ${repeats.map((i) => `${clean(i.name)} x${i.n} (${$(i.t)}, ${i.want ? "want" : "need"})`).join(", ")}.` : "",
     `Biggest: ${biggest.map((r) => `${clean(r.item_name)} ${$(r.amount)} on ${r.date}`).join(", ")}.`,

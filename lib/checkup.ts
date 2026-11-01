@@ -113,10 +113,10 @@ export function checkup(expenses: ExpenseRow[], now = new Date()) {
   const summary = {
     usual_month: Math.round(avg),
     this_month_projected: Math.round(projected),
-    lego_share_pct: Math.round(legoShare * 100),
+    wants_share_pct: Math.round(legoShare * 100),
     subscriptions_monthly: Math.round(subsMonthly),
     subscriptions: subs.slice(0, 6).map((s) => ({ name: s.name.slice(0, 40), amount: Math.round(s.amount * 100) / 100 })),
-    late_night_lego_pct: Math.round(lateShare * 100),
+    late_night_share_of_wants_pct: Math.round(lateShare * 100),
     creeping_up: risers.slice(0, 2).map((r) => ({ category: r.name, pace: Math.round(r.pace), usual: Math.round(r.usual) })),
     top_categories_monthly: topCats.map((c) => ({ category: c.name, amount: Math.round(c.monthly) })),
     frequent_wants_last_3_months: frequentWants,

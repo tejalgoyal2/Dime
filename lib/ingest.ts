@@ -33,7 +33,7 @@ const aiSchema = z.object({
   emoji: z.string().nullable(),
 });
 
-export const INGEST_SCHEMA = S.obj({
+const INGEST_SCHEMA = S.obj({
   is_purchase: S.bool,
   name: S.nullable(S.str),
   amount: S.nullable(S.num),
@@ -42,7 +42,7 @@ export const INGEST_SCHEMA = S.obj({
   emoji: S.nullable(S.str),
 });
 
-export const INGEST_SYSTEM = `You turn one message into an expense, as JSON. The message is either a bank, card or wallet alert, or a short note the user typed ("coffee 5", "uber home $18").
+const INGEST_SYSTEM = `You turn one message into an expense, as JSON. The message is either a bank, card or wallet alert, or a short note the user typed ("coffee 5", "uber home $18").
 
 is_purchase is true for a note with a price, or an alert where money left their account to pay for something (card charge, debit, Interac/UPI to a merchant, autopay).
 It's false (and every other field null) for OTPs and codes, refunds, deposits, credits, salary, transfers between their own accounts, declined or failed payments, reminders, statements, balance alerts, promotions, or no amount.
