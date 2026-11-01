@@ -26,6 +26,8 @@ type AskOptions = {
   lenient?: boolean;
   /** Creativity. Quips like it warm, numbers like it cool. */
   temperature?: number;
+  /** How hard Groq's model thinks first. Defaults: low for fast, medium for serious. */
+  effort?: "low" | "medium" | "high";
   /** Told which provider answered, for the Server-Timing header. */
   onProvider?: (p: "groq" | "gemini") => void;
 };
@@ -67,7 +69,7 @@ export async function ask<T = unknown>(opts: AskOptions): Promise<T> {
   throw lastError;
 }
 
-async function askGroq({ system, prompt, schema, temperature = 0.8, kind = "fast" }: AskOptions): Promise<string> {
+async function askGroq({ system, prompt, schema, temperature = 0.8, kind = "fast", effort }: AskOptions): Promise<string> {
   const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
     method: "POST",
     headers: { Authorization: `Bearer ${process.env.GROQ_API_KEY}`, "Content-Type": "application/json" },
@@ -79,7 +81,7 @@ async function askGroq({ system, prompt, schema, temperature = 0.8, kind = "fast
       ],
       temperature,
       max_completion_tokens: 1500,
-      reasoning_effort: kind === "fast" ? "low" : "medium",
+      reasoning_effort: effort ?? (kind === "fast" ? "low" : "medium"),
       include_reasoning: false,
       // Strict mode: the answer is guaranteed to match the schema.
       response_format: { type: "json_schema", json_schema: { name: "answer", strict: true, schema } },
