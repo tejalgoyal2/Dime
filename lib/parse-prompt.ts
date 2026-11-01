@@ -19,7 +19,8 @@ Which number is the price:
 - A $ sign or "for" marks it.
 - Numbers that belong to the item are never the price: "2%", "500ml", "x2", "Pro 3", "PS5", "2am", "iPhone 17", "Route 99".
 - A number before the item is the price ("6 milk 2" = Milk 2%, 6), unless it counts a plural ("3 coffees 12" = 12).
-- Otherwise it's the number after the item ("uber 18"). "2 coffees at 4 each" = 8.
+- Otherwise it's the number after the item ("uber 18"). "2 coffees at 4 each" = 8. "1.5k" = 1500.
+- Still two candidates? Pick the one that's a believable price for that item ("galaxy s25 1100" = 1100).
 ${CURRENCY_RULE}
 
 ${LIFE_LEGO_RULES}
